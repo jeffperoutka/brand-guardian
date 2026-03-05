@@ -1,0 +1,109 @@
+{
+  "brandOverview": "KOBO Pickleball is a premium pickleball paddle manufacturer positioning themselves as a performance-driven brand that bridges all skill levels from beginner to advanced. They emphasize technical specifications (CFS, carbon fiber, Kevlar, specific mm thicknesses) while maintaining accessibility through customer testimonials and community storytelling. Their pricing ($118-$299) places them in the mid-to-premium segment, and they differentiate through manufacturing transparency (Shenzhen relocation story) and USA Pickleball approval for competitive play.",
+  "website": "https://www.kobopickleball.co",
+  "industry": "Sporting Goods / Pickleball Equipment Manufacturing",
+  "targetAudience": {
+    "primary": "Intermediate to advanced recreational pickleball players (ages 35-65) who play 2-4 times per week and are willing to invest in quality equipment to improve their game",
+    "secondary": "Beginners who are serious about the sport from the start and want equipment they can grow into; competitive tournament players seeking USA Pickleball approved gear",
+    "demographics": "Age 35-70, skews slightly older (retiree-adjacent demographic), middle to upper-middle income ($75k-$150k household), suburban/resort community dwellers, likely homeowners with disposable income for hobbies",
+    "psychographics": "Active lifestyle enthusiasts transitioning from tennis or other racquet sports, community-oriented, value social connection through sports, motivated by skill improvement and friendly competition, appreciate technical specs but need them explained in plain language, trust peer recommendations heavily"
+  },
+  "brandVoice": {
+    "tone": "Approachable technical — they use specific materials and specs (CFS, Kevlar, 14mm/16mm, T700 carbon) but frame everything around player benefits ('power, touch and control'). Conversational without being overly casual. Confidence without arrogance. They write like a knowledgeable friend who happens to know paddle engineering, not like engineers talking to engineers.",
+    "personality": "Community-focused, transparent (willing to talk about manufacturing decisions), performance-obsessed but inclusive (emphasize 'all skill levels'), storytelling-driven (heavy use of customer testimonials with names and faces), authenticity-seeking (behind-the-scenes content, real moments)",
+    "doNotSay": [
+      "Overly technical jargon without context (don't just say '18K carbon' without explaining why it matters)",
+      "Elitist language that excludes beginners ('only for serious players', 'if you don't know what CFS means')",
+      "Generic sports motivation clichés ('be your best', 'unleash your potential')",
+      "Anything that diminishes the community/social aspect of pickleball",
+      "Cheap or budget-focused messaging (they're premium, not discount)"
+    ],
+    "preferredTerms": [
+      "Control, spin, and power (their holy trinity)",
+      "Level up (not 'improve' or 'enhance')",
+      "Real stories, real results (their testimonial tagline)",
+      "Court essentials",
+      "Premium (not luxury or high-end)",
+      "Players (not customers or athletes)"
+    ]
+  },
+  "coreOfferings": {
+    "products": [
+      "Carbon fiber pickleball paddles ($118-$299) — multiple lines including Scorch, Tsunami, Thunder, Lightning, Hydro series with varying core materials (Kevlar, carbon) and thicknesses (14mm, 16mm)",
+      "Pickleball accessories — Gecko Backpack ($130) prominently featured as 'court essentials'",
+      "Apparel — category exists but not detailed on crawled pages",
+      "Eyewear — category exists, likely protective/performance eyewear",
+      "Gear — general equipment category"
+    ],
+    "valueProposition": "USA Pickleball approved paddles with premium materials (carbon fiber, Kevlar) and engineering transparency, designed to help players of all levels improve through superior control, spin, and power — backed by real customer success stories and manufacturing integrity",
+    "keyBenefits": [
+      "USA Pickleball approved for competitive play (legitimacy/tournament readiness)",
+      "Advanced materials engineering (CFS, T700 carbon, Kevlar, specific core thicknesses)",
+      "Skill progression friendly (explicitly serve beginners through advanced)",
+      "1-year warranty (quality confidence)",
+      "Free shipping over $75 (purchase incentive)",
+      "Manufacturing transparency (Shenzhen story positioning quality control)"
+    ],
+    "pricingTier": "Mid-to-premium ($118-$299 paddles, $130 backpack) — they're more expensive than big-box sporting goods paddles but not ultra-luxury. Evidence: sale pricing from $299 to $253 suggests they compete in a space where $250-300 is the aspirational range but $150-200 is the sweet spot. Discount codes ('Get10') indicate they use promotions to close sales."
+  },
+  "competitors": [
+    {
+      "name": "Selkirk (likely)",
+      "differentiator": "KOBO emphasizes manufacturing transparency and community storytelling over pure performance stats"
+    },
+    {
+      "name": "JOOLA/Paddletek/Engage (likely competitors in premium space)",
+      "differentiator": "KOBO positions as more accessible to all skill levels while maintaining premium materials; heavy emphasis on real customer testimonials vs. pro athlete endorsements"
+    }
+  ],
+  "competitiveDifferentiators": "Manufacturing transparency (openly discussing the Shenzhen move for quality control rather than hiding overseas production), extensive video testimonial library with real customers (not just pro players), explicit skill-level inclusivity (most premium brands skew advanced-only), technical specs presented in player-benefit language, USA Pickleball approval emphasized as table stakes, affiliate/ambassador program for community building",
+  "contentThemes": {
+    "onBrandTopics": [
+      "Paddle material science explained for players (carbon fiber types, core thickness impact on play style)",
+      "Skill progression guides (how to advance from beginner to intermediate)",
+      "Player success stories and testimonials",
+      "Manufacturing and quality control insights",
+      "Pickleball community building and social aspects",
+      "Equipment care and maintenance",
+      "Game improvement techniques tied to equipment choices",
+      "Tournament preparation for recreational players"
+    ],
+    "adjacentTopics": [
+      "Pickleball court etiquette and rules",
+      "Active aging and sports for 50+ demographics",
+      "Transitioning from tennis to pickleball",
+      "Community sports and social connection",
+      "Recreational athletics and fitness",
+      "Sports injury prevention for older athletes",
+      "Travel and destination pickleball (resort courts)",
+      "Retirement lifestyle and hobbies"
+    ],
+    "offLimitTopics": [
+      "Professional/elite pickleball drama (too inside-baseball)",
+      "Budget equipment roundups (dilutes premium positioning)",
+      "Other racquet sports as primary focus (pickleball-only brand)",
+      "Highly technical engineering content without player benefits",
+      "Controversial sports politics",
+      "Content that positions pickleball as 'lesser' sport or retirement fallback (they take it seriously)",
+      "Anything that mocks or condescends to beginners"
+    ]
+  },
+  "keyMessages": [
+    "Power, touch and control for players who want to improve (hero tagline)",
+    "Real stories, real results (testimonial positioning)",
+    "Best pickleball paddles for beginner, intermediate and advanced players (inclusive excellence)",
+    "Level up your game with KOBO Paddles (skill progression promise)",
+    "USA Pickleball Approved for competitive play (legitimacy badge)",
+    "The extras that make all the difference on the court (accessories positioning)"
+  ],
+  "websiteInsights": {
+    "contentStyle": "Short, punchy copy with strategic use of technical specifications. Heavy reliance on video testimonials (12+ customer stories featured on homepage). Bullet points and benefit-driven product descriptions. Behind-the-scenes storytelling ('Why We Moved to Shenzhen'). Minimal fluff — every sentence serves a purpose. Product names are evocative (Tsunami, Thunder, Lightning, Scorch, Hydro) rather than alphanumeric model codes.",
+    "ctaPatterns": "Action-oriented and immediate: 'Add to cart', 'Level up your game', 'Join Team KOBO Today', 'Shop by Category'. Use of urgency ('77 people have this in their carts', 'Selling fast!'). First-order discount codes ('Get10 for 10% off your first order'). Affiliate/partnership CTAs prominent ('Join the game. Step up as a partner').",
+    "socialProof": "Extensive video testimonials with real names and faces (Chet Van Orden, Sheldon, Beth, Kaye McClain, etc.) — not generic reviews. Social proof via scarcity ('40 people viewing right now', '77 in carts'). USA Pickleball approval badge. Warranty as trust signal. Community-building programs (affiliates, ambassadors, players program).",
+    "mainPages": "Homepage (product showcase + testimonials), Collections/Products (category navigation), individual product pages with detailed specs, Stories section (content marketing), Support pages, Affiliate/Ambassador program pages"
+  },
+  "industryContext": "Pickleball is the fastest-growing sport in America (2023-2024), driven primarily by active adults 50+ but expanding to younger demographics. The equipment market has exploded with dozens of new paddle brands in the past 3 years, creating a crowded premium segment where differentiation is challenging. USA Pickleball approval is becoming table stakes, and brands are competing on materials innovation (carbon fiber types, core technologies) while trying to explain technical benefits to an audience that's often new to equipment-intensive sports.",
+  "clientName": "Kobo Pickleball",
+  "cachedAt": "2026-03-05T16:59:43.094Z",
+  "cacheKey": "kobo-pickleball"
+}
