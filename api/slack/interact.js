@@ -1,7 +1,7 @@
 const { waitUntil } = require('@vercel/functions');
 const { slack } = require('../lib/connectors');
 const { getOrBuildBrandProfile } = require('../lib/brand-context');
-const { analyzeBrandAlignment, formatResultBlocks } = require('../lib/engine');
+const { analyzeBrandAlignment, formatResultBlocks, CONTENT_TYPES } = require('../lib/engine');
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -25,18 +25,18 @@ module.exports = async function handler(req, res) {
 };
 
 /**
- * Main brand check flow:
- * 1. Parse form inputs
- * 2. Post progress message to channel
- * 3. Get or build brand profile (auto-research if needed)
- * 4. Run alignment analysis
- * 5. Post results as thread reply
+ * Main brand check flow — threaded conversation UX:
+ *
+ * 1. Post form recap as parent message (permanent receipt)
+ * 2. Post progress updates as a thread reply (updated in place)
+ * 3. Post final results as a separate thread reply
+ * 4. User can reply in thread for dialogue / training
  */
 async function handleBrandCheck(payload) {
   const values = payload.view?.state?.values;
   const userId = payload.user?.id;
 
-  // ── Get channel from private_metadata (passed from slash command) ──
+  // ── Get channel from private_metadata ──
   let metadata = {};
   try { metadata = JSON.parse(payload.view?.private_metadata || '{}'); } catch (e) { /* ignore */ }
 
@@ -44,7 +44,6 @@ async function handleBrandCheck(payload) {
   let clientName = '';
   let websiteUrl = '';
 
-  // Check which form variant was used (dropdown vs text input)
   const selectValue = values?.client_block?.client_select?.selected_option?.value;
   if (selectValue) {
     if (selectValue === '__new__') {
@@ -71,9 +70,10 @@ async function handleBrandCheck(payload) {
 
   // ── Detect Google Docs/Sheets links and fetch content ──
   const googleDocMatch = content.trim().match(/docs\.google\.com\/(?:document|spreadsheets)\/d\/([a-zA-Z0-9_-]+)/);
+  let isSheet = false;
   if (googleDocMatch) {
     const docId = googleDocMatch[1];
-    const isSheet = content.includes('/spreadsheets/');
+    isSheet = content.includes('/spreadsheets/');
     const exportUrl = isSheet
       ? `https://docs.google.com/spreadsheets/d/${docId}/export?format=csv`
       : `https://docs.google.com/document/d/${docId}/export?format=txt`;
@@ -91,36 +91,86 @@ async function handleBrandCheck(payload) {
         }
       } else {
         console.error(`Google doc fetch failed: HTTP ${gdResp.status}`);
-        content = `[Note: Could not auto-fetch Google Doc (HTTP ${gdResp.status}) — the document may not be publicly shared. Using link as-is.]\n\n${content}`;
+        content = `[Note: Could not auto-fetch Google Doc (HTTP ${gdResp.status}) — may not be publicly shared.]\n\n${content}`;
       }
     } catch (err) {
       console.error('Google doc fetch error:', err.message);
-      content = `[Note: Could not auto-fetch Google Doc — ${err.message}. Using link as-is.]\n\n${content}`;
+      content = `[Note: Could not auto-fetch Google Doc — ${err.message}]\n\n${content}`;
     }
   }
 
-  const channel = metadata.channel_id || process.env.SLACK_CHANNEL_ID || userId;
-  console.log('Posting to channel:', channel, '(source:', metadata.channel_id ? 'metadata' : process.env.SLACK_CHANNEL_ID ? 'env' : 'userId', ')');
+  // ── Build form recap (parent message) ──
+  const typeLabels = {
+    on_site: '🌐 On-Site Content',
+    reddit_review: '💬 Reddit Review',
+    guest_post: '📝 Guest Post',
+    social_media: '📱 Social Media',
+  };
 
-  // ── Google Doc fetch note for progress ──
-  const hasGoogleDoc = !!googleDocMatch;
+  const contentPreview = googleDocMatch
+    ? `Fetched from Google ${isSheet ? 'Sheet' : 'Doc'} (${content.length.toLocaleString()} chars)`
+    : `${content.slice(0, 150).replace(/\n/g, ' ')}${content.length > 150 ? '...' : ''} _(${content.length.toLocaleString()} chars)_`;
+
+  const recapLines = [
+    `🛡️ *Brand Check Submitted*`,
+    ``,
+    `*Client:* ${titleCase(clientName)}`,
+    `*Content Type:* ${typeLabels[contentType] || contentType}`,
+    `*Content:* ${contentPreview}`,
+  ];
+  if (priorities) recapLines.push(`*Priorities:* ${priorities.slice(0, 150)}`);
+  if (avoid) recapLines.push(`*Avoid:* ${avoid.slice(0, 150)}`);
+  if (notes) recapLines.push(`*Notes:* ${notes.slice(0, 150)}`);
+
+  const recapText = recapLines.join('\n');
+
+  // ── Post parent message (try channel → fallback to DM) ──
+  let channel = metadata.channel_id || process.env.SLACK_CHANNEL_ID;
+  let usingDm = false;
+  let parentMsg;
 
   try {
-    // ── Post initial progress message ──
+    // Try joining first (for public channels)
     await slack.joinChannel(channel).catch(() => {});
-    const priorityNote = priorities || avoid
-      ? `\n📌 ${priorities ? `Focus: _${priorities.slice(0, 80)}_` : ''}${avoid ? `${priorities ? ' | ' : ''}Avoid: _${avoid.slice(0, 80)}_` : ''}`
-      : '';
-    const googleNote = hasGoogleDoc ? '\n📄 Content fetched from Google Doc/Sheet' : '';
-    const msg = await slack.postMessage(channel, `🛡️ *Brand Check* for *${titleCase(clientName)}*${priorityNote}${googleNote}\n⏳ Starting...`);
-    const msgTs = msg.ts;
+    parentMsg = await slack.postMessage(channel, recapText);
 
-    // ── Progress callback — updates the message in real time ──
+    if (!parentMsg.ok) {
+      throw new Error(parentMsg.error || 'postMessage failed');
+    }
+  } catch (err) {
+    console.error(`Channel post failed (${channel}):`, err.message, '— falling back to DM');
+    channel = userId;
+    usingDm = true;
+
+    try {
+      parentMsg = await slack.postMessage(channel, recapText);
+      if (!parentMsg.ok) throw new Error(parentMsg.error);
+    } catch (dmErr) {
+      console.error('DM fallback also failed:', dmErr.message);
+      return;
+    }
+  }
+
+  const threadTs = parentMsg.ts;
+
+  // Helper: post in thread
+  const threadPost = async (text) => {
+    return slack.postMessage(channel, text, { threadTs });
+  };
+
+  try {
+    // ── Notify if using DM fallback ──
+    if (usingDm) {
+      await threadPost(`⚠️ I couldn't post to the channel — please invite me by typing \`/invite @Brand Guardian\` in the channel. Continuing here for now.`);
+    }
+
+    // ── Progress message in thread (will be updated in place) ──
+    const progressMsg = await threadPost('⏳ Starting brand check...');
+    const progressTs = progressMsg.ts;
+
     const updateProgress = async (stepText) => {
       try {
-        await slack.updateMessage(channel, msgTs, `🛡️ *Brand Check* for *${titleCase(clientName)}*\n⏳ ${stepText}`, [
-          { type: 'section', text: { type: 'mrkdwn', text: `🛡️ *Brand Check* for *${titleCase(clientName)}*\n⏳ ${stepText}` } },
-        ]);
+        await slack.updateMessage(channel, progressTs, `⏳ ${stepText}`);
       } catch (err) {
         console.error('Progress update failed:', err.message);
       }
@@ -137,19 +187,14 @@ async function handleBrandCheck(payload) {
     );
 
     if (!profile) {
-      await slack.updateMessage(channel, msgTs,
-        `🛡️ *Brand Check* for *${titleCase(clientName)}*\n❌ ${error || 'Failed to build brand profile.'}`,
-        [{
-          type: 'section',
-          text: { type: 'mrkdwn', text: `🛡️ *Brand Check* for *${titleCase(clientName)}*\n❌ ${error || 'Failed to build brand profile. Check the client name matches ClickUp.'}` },
-        }]
+      await slack.updateMessage(channel, progressTs,
+        `❌ ${error || 'Failed to build brand profile. Check the client name matches ClickUp.'}`
       );
       return;
     }
 
-    // Log what happened with research
     if (researchNeeded) {
-      await updateProgress('Deep research complete. Research written back to ClickUp. Now analyzing content...');
+      await updateProgress('Deep research complete — saved to ClickUp. Now analyzing content...');
     } else if (source === 'cache') {
       await updateProgress('Brand profile loaded from cache. Analyzing content...');
     } else {
@@ -161,34 +206,33 @@ async function handleBrandCheck(payload) {
 
     const analysis = await analyzeBrandAlignment(content, profile, contentType, notes, { priorities, avoid });
 
-    // ── PHASE 3: Post results ──
+    // ── PHASE 3: Update progress to done ──
+    const doneText = researchNeeded
+      ? '✅ Complete — deep brand research was run and saved to the ClickUp Info Doc.'
+      : '✅ Analysis complete.';
+    await slack.updateMessage(channel, progressTs, doneText);
+
+    // ── PHASE 4: Post results as separate thread reply ──
     const resultBlocks = formatResultBlocks(analysis, titleCase(clientName), contentType);
 
     const alignEmoji = analysis.overallAlignment === 'ALIGNED' ? '✅'
       : analysis.overallAlignment === 'PARTIALLY_ALIGNED' ? '⚠️' : '❌';
     const fallback = `${alignEmoji} Brand Check: ${analysis.overallAlignment} for ${titleCase(clientName)} — ${analysis.summary}`;
 
-    // Add research note if first time
-    if (researchNeeded) {
-      resultBlocks.unshift({
-        type: 'context',
-        elements: [{ type: 'mrkdwn', text: '📝 _First check for this client — deep brand research was run and saved to the ClickUp Info Doc._' }],
-      });
-    }
-
     try {
-      await slack.updateMessage(channel, msgTs, fallback, resultBlocks);
-    } catch (updateErr) {
-      console.error('Update failed, posting new message:', updateErr.message);
-      await slack.postMessage(channel, fallback, { blocks: resultBlocks, threadTs: msgTs });
+      await slack.postMessage(channel, fallback, { threadTs, blocks: resultBlocks });
+    } catch (resultErr) {
+      console.error('Result post failed:', resultErr.message);
+      // Try plain text fallback
+      await threadPost(fallback);
     }
 
   } catch (err) {
     console.error('handleBrandCheck error:', err.message, err.stack);
     try {
-      await slack.postMessage(channel, `❌ Brand check failed for ${titleCase(clientName)}: ${err.message}`);
+      await threadPost(`❌ Brand check failed: ${err.message}`);
     } catch (e) {
-      console.error('Failed to post error:', e.message);
+      console.error('Failed to post error to thread:', e.message);
     }
   }
 }
