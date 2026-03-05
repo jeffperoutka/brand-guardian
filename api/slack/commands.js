@@ -128,6 +128,34 @@ async function openBrandCheckModal(triggerId, prefillClient) {
       },
     });
 
+    // ── Client priorities (optional) ──
+    blocks.push({
+      type: 'input',
+      block_id: 'priorities_block',
+      label: { type: 'plain_text', text: 'Client Priorities (optional)' },
+      optional: true,
+      element: {
+        type: 'plain_text_input',
+        action_id: 'priorities_input',
+        multiline: true,
+        placeholder: { type: 'plain_text', text: 'What should the brand focus on? e.g. "Selling crypto, bitcoin trading, ethereum exchange"' },
+      },
+    });
+
+    // ── Client avoid topics (optional) ──
+    blocks.push({
+      type: 'input',
+      block_id: 'avoid_block',
+      label: { type: 'plain_text', text: 'Topics to Avoid (optional)' },
+      optional: true,
+      element: {
+        type: 'plain_text_input',
+        action_id: 'avoid_input',
+        multiline: true,
+        placeholder: { type: 'plain_text', text: 'What should the brand NOT talk about? e.g. "NFTs, NFT marketplace, digital collectibles"' },
+      },
+    });
+
     // ── Optional notes ──
     blocks.push({
       type: 'input',

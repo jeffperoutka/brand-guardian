@@ -320,7 +320,7 @@ function extractResearchSection(docContent) {
 /**
  * Run deep research — website crawl + Claude analysis
  */
-async function runDeepResearch(clientName, existingDocContent, websiteUrl, progressCallback) {
+async function runDeepResearch(clientName, existingDocContent, websiteUrl, progressCallback, directives = {}) {
   if (progressCallback) await progressCallback('Crawling website pages...');
   let crawledPages = [];
   let websiteData = '';
@@ -384,7 +384,10 @@ RULES:
 2. For doNotSay — what would make their audience cringe?
 3. Only list competitors you can identify from the content.
 4. Adjacent topics = what industry publications cover.
-5. Off-limit topics = what would damage their brand.`;
+5. Off-limit topics = what would damage their brand.
+6. If CLIENT DIRECTIVES are provided below, they OVERRIDE what you find on the website. The client is actively pivoting/repositioning — their website may not reflect their current direction. Treat the directives as the source of truth for brand positioning.
+
+${directives.priorities || directives.avoid ? `\n━━━ CLIENT DIRECTIVES ━━━\n${directives.priorities ? `PRIORITIZE (focus research on these topics): ${directives.priorities}` : ''}${directives.avoid ? `\nAVOID (do NOT include these in the brand profile): ${directives.avoid}` : ''}\n━━━━━━━━━━━━━━━━━━━━\nIMPORTANT: These directives reflect the client's CURRENT strategic direction. Even if the website mentions avoided topics, exclude them from the profile. Build the profile around the priority topics instead.` : ''}`;
 
   const userContent = `Research this client:
 
@@ -412,9 +415,13 @@ Build the most thorough profile possible.`;
  * Parse existing research from the doc into structured profile.
  * Reads the ENTIRE doc (original answers + research section) to build the profile.
  */
-async function parseExistingResearch(docContent, clientName) {
+async function parseExistingResearch(docContent, clientName, directives = {}) {
+  const directivesBlock = (directives.priorities || directives.avoid)
+    ? `\n\nCLIENT DIRECTIVES — THESE OVERRIDE WHAT THE DOC SAYS:\n${directives.priorities ? `PRIORITIZE: ${directives.priorities}\n` : ''}${directives.avoid ? `AVOID (exclude from profile): ${directives.avoid}\n` : ''}The client is repositioning. Build the profile around the priority topics and EXCLUDE avoided topics entirely, even if the doc mentions them.`
+    : '';
+
   const result = await askClaudeLong(
-    `Parse this client's brand document into a structured profile. The doc contains their original info answers AND brand research findings. Extract everything into a single comprehensive profile.
+    `Parse this client's brand document into a structured profile. The doc contains their original info answers AND brand research findings. Extract everything into a single comprehensive profile.${directivesBlock}
 
 OUTPUT — valid JSON only, no markdown fences:
 {
@@ -455,17 +462,21 @@ Prioritize the MOST RECENT information if there are conflicts (newer entries at 
  * 4. If not → run deep research → append to same doc page
  * 5. Cache in GitHub for fast lookups
  */
-async function getOrBuildBrandProfile(clientName, websiteUrl, progressCallback) {
+async function getOrBuildBrandProfile(clientName, websiteUrl, progressCallback, directives = {}) {
   const cacheKey = clientName.toLowerCase().replace(/[^a-z0-9]/g, '-');
 
-  // Quick check GitHub cache
+  // Quick check GitHub cache — skip cache if directives are provided (priorities change the profile)
+  const hasDirectives = !!(directives.priorities || directives.avoid);
   const cached = await github.readFile(`${BRAND_CACHE_PREFIX}/${cacheKey}.json`);
   const cacheAge = cached?.cachedAt ? Date.now() - new Date(cached.cachedAt).getTime() : Infinity;
   const CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
 
-  if (cached && cacheAge < CACHE_TTL) {
+  if (cached && cacheAge < CACHE_TTL && !hasDirectives) {
     if (progressCallback) await progressCallback('Brand profile loaded from cache.');
     return { profile: cached, source: 'cache', researchNeeded: false };
+  }
+  if (hasDirectives && cached) {
+    if (progressCallback) await progressCallback('Directives provided — rebuilding profile with custom focus...');
   }
 
   // Find the Client Info Doc
@@ -490,7 +501,7 @@ async function getOrBuildBrandProfile(clientName, websiteUrl, progressCallback) 
   // Check if research already exists in the doc
   if (hasExistingResearch(fullContent)) {
     if (progressCallback) await progressCallback('Existing research found. Building profile...');
-    const profile = await parseExistingResearch(fullContent, clientName);
+    const profile = await parseExistingResearch(fullContent, clientName, directives);
 
     if (profile) {
       const profileWithMeta = { ...profile, clientName, cachedAt: new Date().toISOString(), cacheKey };
@@ -508,7 +519,7 @@ async function getOrBuildBrandProfile(clientName, websiteUrl, progressCallback) 
     if (urlMatch) websiteUrl = urlMatch[0];
   }
 
-  const research = await runDeepResearch(clientName, fullContent, websiteUrl, progressCallback);
+  const research = await runDeepResearch(clientName, fullContent, websiteUrl, progressCallback, directives);
 
   if (!research) {
     return { profile: null, source: 'none', error: 'Deep research failed. Check logs.' };

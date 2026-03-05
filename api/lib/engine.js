@@ -81,7 +81,7 @@ const CONTENT_TYPES = {
 /**
  * Run brand alignment analysis
  */
-async function analyzeBrandAlignment(content, brandProfile, contentType, additionalNotes) {
+async function analyzeBrandAlignment(content, brandProfile, contentType, additionalNotes, directives = {}) {
   const typeConfig = CONTENT_TYPES[contentType];
   if (!typeConfig) throw new Error(`Unknown content type: ${contentType}`);
 
@@ -139,7 +139,16 @@ WEBSITE STYLE:
 • CTA Patterns: ${brandProfile.websiteInsights?.ctaPatterns || 'Unknown'}
 ━━━━━━━━━━━━━━━━━━━━
 ${trainingRules}
-
+${directives.priorities || directives.avoid ? `
+━━━ CLIENT DIRECTIVES ━━━
+${directives.priorities ? `🎯 PRIORITY TOPICS (content SHOULD focus on): ${directives.priorities}` : ''}
+${directives.avoid ? `🚫 AVOID TOPICS (content must NOT mention): ${directives.avoid}` : ''}
+━━━━━━━━━━━━━━━━━━━━
+CRITICAL: These directives are the client's explicit instructions and take HIGHEST PRIORITY in your analysis.
+- If the content mentions AVOIDED topics, flag each one as a HIGH severity misalignment — even if the brand profile suggests those topics are relevant.
+- If the content does NOT cover PRIORITY topics when it should, flag this as a misalignment.
+- Content that focuses on priority topics and avoids excluded topics should receive higher alignment scores.
+` : ''}
 OUTPUT — respond with valid JSON only, no markdown fences:
 {
   "overallAlignment": "ALIGNED | PARTIALLY_ALIGNED | NOT_ALIGNED",

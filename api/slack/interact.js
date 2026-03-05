@@ -56,6 +56,8 @@ async function handleBrandCheck(payload) {
 
   const contentType = values?.type_block?.type_select?.selected_option?.value;
   const content = values?.content_block?.content_input?.value;
+  const priorities = values?.priorities_block?.priorities_input?.value || '';
+  const avoid = values?.avoid_block?.avoid_input?.value || '';
   const notes = values?.notes_block?.notes_input?.value;
 
   if (!clientName || !content || !contentType) {
@@ -68,7 +70,10 @@ async function handleBrandCheck(payload) {
   try {
     // ── Post initial progress message ──
     await slack.joinChannel(channel).catch(() => {});
-    const msg = await slack.postMessage(channel, `🛡️ *Brand Check* for *${titleCase(clientName)}*\n⏳ Starting...`);
+    const priorityNote = priorities || avoid
+      ? `\n📌 ${priorities ? `Focus: _${priorities.slice(0, 80)}_` : ''}${avoid ? `${priorities ? ' | ' : ''}Avoid: _${avoid.slice(0, 80)}_` : ''}`
+      : '';
+    const msg = await slack.postMessage(channel, `🛡️ *Brand Check* for *${titleCase(clientName)}*${priorityNote}\n⏳ Starting...`);
     const msgTs = msg.ts;
 
     // ── Progress callback — updates the message in real time ──
@@ -88,7 +93,8 @@ async function handleBrandCheck(payload) {
     const { profile, source, error, researchNeeded } = await getOrBuildBrandProfile(
       clientName,
       websiteUrl,
-      updateProgress
+      updateProgress,
+      { priorities, avoid }
     );
 
     if (!profile) {
@@ -114,7 +120,7 @@ async function handleBrandCheck(payload) {
     // ── PHASE 2: Run alignment analysis ──
     await updateProgress('Running brand alignment analysis...');
 
-    const analysis = await analyzeBrandAlignment(content, profile, contentType, notes);
+    const analysis = await analyzeBrandAlignment(content, profile, contentType, notes, { priorities, avoid });
 
     // ── PHASE 3: Post results ──
     const resultBlocks = formatResultBlocks(analysis, titleCase(clientName), contentType);
