@@ -504,41 +504,51 @@ async function getOrBuildBrandProfile(clientName, websiteUrl, progressCallback, 
   if (progressCallback) await progressCallback('Searching ClickUp for Client Info Doc...');
   const docInfo = await findClientInfoDoc(clientName);
 
-  if (!docInfo) {
-    return {
-      profile: null, source: 'none',
-      error: `Could not find a Client Info Doc for "${clientName}" in ClickUp. Make sure the doc name contains "${clientName}".`,
-    };
-  }
+  let fullContent = '';
+  let mainPageId = null;
 
-  // Read the doc
-  if (progressCallback) await progressCallback(`Found "${docInfo.docName}". Reading...`);
-  const { content: fullContent, mainContent, mainPageId } = await readDocContent(docInfo.docId);
+  if (docInfo) {
+    // Read the doc
+    if (progressCallback) await progressCallback(`Found "${docInfo.docName}". Reading...`);
+    const docData = await readDocContent(docInfo.docId);
+    fullContent = docData.content || '';
+    mainPageId = docData.mainPageId;
 
-  if (!fullContent) {
-    return { profile: null, source: 'none', error: `Found "${docInfo.docName}" but it's empty.` };
-  }
+    if (fullContent) {
+      // Check if research already exists in the doc
+      if (hasExistingResearch(fullContent)) {
+        if (progressCallback) await progressCallback('Existing research found. Building profile...');
+        const profile = await parseExistingResearch(fullContent, clientName, directives);
 
-  // Check if research already exists in the doc
-  if (hasExistingResearch(fullContent)) {
-    if (progressCallback) await progressCallback('Existing research found. Building profile...');
-    const profile = await parseExistingResearch(fullContent, clientName, directives);
-
-    if (profile) {
-      const profileWithMeta = { ...profile, clientName, cachedAt: new Date().toISOString(), cacheKey };
-      await github.writeFile(`${BRAND_CACHE_PREFIX}/${cacheKey}.json`, profileWithMeta, `brand-cache: ${clientName}`);
-      return { profile: profileWithMeta, source: 'existing_research', researchNeeded: false };
+        if (profile) {
+          const profileWithMeta = { ...profile, clientName, cachedAt: new Date().toISOString(), cacheKey };
+          await github.writeFile(`${BRAND_CACHE_PREFIX}/${cacheKey}.json`, profileWithMeta, `brand-cache: ${clientName}`);
+          return { profile: profileWithMeta, source: 'existing_research', researchNeeded: false };
+        }
+      }
     }
+  } else {
+    console.log(`No ClickUp doc found for "${clientName}" — will attempt website-only research`);
   }
 
-  // No research exists — run deep research
-  if (progressCallback) await progressCallback('No existing research. Running deep brand research...');
-
-  // Try to find website URL from doc content if not provided
-  if (!websiteUrl) {
+  // No research exists (or no doc at all) — need website URL to proceed
+  if (!websiteUrl && fullContent) {
     const urlMatch = fullContent.match(/https?:\/\/(?:www\.)?[a-zA-Z0-9\-]+\.[a-zA-Z]{2,}(?:\/[^\s)]*)?/);
     if (urlMatch) websiteUrl = urlMatch[0];
   }
+
+  if (!websiteUrl && !fullContent) {
+    return {
+      profile: null, source: 'none',
+      error: `Could not find a Client Info Doc for "${clientName}" in ClickUp and no website URL was provided. Either add an Info Doc to ClickUp or provide a website URL.`,
+    };
+  }
+
+  // Run deep research — works with just website, just doc content, or both
+  const researchLabel = docInfo
+    ? 'No existing research. Running deep brand research...'
+    : `No ClickUp doc found — running brand research from website${websiteUrl ? ` (${websiteUrl})` : ''}...`;
+  if (progressCallback) await progressCallback(researchLabel);
 
   const research = await runDeepResearch(clientName, fullContent, websiteUrl, progressCallback, directives);
 
@@ -546,9 +556,9 @@ async function getOrBuildBrandProfile(clientName, websiteUrl, progressCallback, 
     return { profile: null, source: 'none', error: 'Deep research failed. Check logs.' };
   }
 
-  // APPEND research to the existing doc page (not a new page)
-  if (progressCallback) await progressCallback('Appending research to Client Info Doc...');
-  if (mainPageId) {
+  // APPEND research to the existing doc page if we have one
+  if (docInfo && mainPageId) {
+    if (progressCallback) await progressCallback('Appending research to Client Info Doc...');
     await appendResearchToDoc(docInfo.docId, mainPageId, clientName, research);
   }
 
