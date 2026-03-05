@@ -47,6 +47,13 @@ async function findClientInfoDoc(clientName) {
         },
         body: JSON.stringify({ query, types: ['doc'], limit: 5 }),
       });
+
+      if (!resp.ok) {
+        const errText = await resp.text().catch(() => 'unknown');
+        console.error(`ClickUp search HTTP ${resp.status} for "${query}":`, errText.slice(0, 200));
+        continue;
+      }
+
       const data = await resp.json();
 
       if (data.results?.length > 0) {
@@ -74,6 +81,12 @@ async function readDocContent(docId) {
     `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs/${docId}/pages`,
     { headers: { 'Authorization': process.env.CLICKUP_API_TOKEN } }
   );
+
+  if (!pagesResp.ok) {
+    console.error(`ClickUp pages HTTP ${pagesResp.status}:`, await pagesResp.text().catch(() => ''));
+    return { content: '', pageId: null, pages: [] };
+  }
+
   const pagesData = await pagesResp.json();
 
   if (!pagesData.pages?.length) return { content: '', pageId: null, pages: [] };
@@ -89,6 +102,10 @@ async function readDocContent(docId) {
         `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs/${docId}/pages/${page.id}?content_format=text/md`,
         { headers: { 'Authorization': process.env.CLICKUP_API_TOKEN } }
       );
+      if (!pageResp.ok) {
+        console.error(`ClickUp page ${page.id} HTTP ${pageResp.status}`);
+        continue;
+      }
       const pageData = await pageResp.json();
       const content = pageData.content || '';
 
@@ -190,6 +207,10 @@ ${research.industryContext || 'Not available'}`;
         }),
       }
     );
+    if (!resp.ok) {
+      console.error(`ClickUp append HTTP ${resp.status}:`, await resp.text().catch(() => ''));
+      return null;
+    }
     const result = await resp.json();
     console.log('appendResearchToDoc result:', JSON.stringify(result).slice(0, 200));
     return result;

@@ -36,6 +36,10 @@ async function handleBrandCheck(payload) {
   const values = payload.view?.state?.values;
   const userId = payload.user?.id;
 
+  // ── Get channel from private_metadata (passed from slash command) ──
+  let metadata = {};
+  try { metadata = JSON.parse(payload.view?.private_metadata || '{}'); } catch (e) { /* ignore */ }
+
   // ── Parse form values ──
   let clientName = '';
   let websiteUrl = '';
@@ -55,7 +59,7 @@ async function handleBrandCheck(payload) {
   }
 
   const contentType = values?.type_block?.type_select?.selected_option?.value;
-  const content = values?.content_block?.content_input?.value;
+  let content = values?.content_block?.content_input?.value;
   const priorities = values?.priorities_block?.priorities_input?.value || '';
   const avoid = values?.avoid_block?.avoid_input?.value || '';
   const notes = values?.notes_block?.notes_input?.value;
@@ -65,7 +69,41 @@ async function handleBrandCheck(payload) {
     return;
   }
 
-  const channel = process.env.SLACK_CHANNEL_ID || userId;
+  // ── Detect Google Docs/Sheets links and fetch content ──
+  const googleDocMatch = content.trim().match(/docs\.google\.com\/(?:document|spreadsheets)\/d\/([a-zA-Z0-9_-]+)/);
+  if (googleDocMatch) {
+    const docId = googleDocMatch[1];
+    const isSheet = content.includes('/spreadsheets/');
+    const exportUrl = isSheet
+      ? `https://docs.google.com/spreadsheets/d/${docId}/export?format=csv`
+      : `https://docs.google.com/document/d/${docId}/export?format=txt`;
+
+    try {
+      console.log(`Fetching Google ${isSheet ? 'Sheet' : 'Doc'}: ${docId}`);
+      const gdResp = await fetch(exportUrl, { redirect: 'follow' });
+      if (gdResp.ok) {
+        const gdContent = await gdResp.text();
+        if (gdContent.length > 50) {
+          content = `[Fetched from Google ${isSheet ? 'Sheet' : 'Doc'}: ${content.trim()}]\n\n${gdContent.slice(0, 50000)}`;
+          console.log(`Google doc fetched: ${gdContent.length} chars`);
+        } else {
+          console.log('Google doc fetch returned minimal content, using original');
+        }
+      } else {
+        console.error(`Google doc fetch failed: HTTP ${gdResp.status}`);
+        content = `[Note: Could not auto-fetch Google Doc (HTTP ${gdResp.status}) — the document may not be publicly shared. Using link as-is.]\n\n${content}`;
+      }
+    } catch (err) {
+      console.error('Google doc fetch error:', err.message);
+      content = `[Note: Could not auto-fetch Google Doc — ${err.message}. Using link as-is.]\n\n${content}`;
+    }
+  }
+
+  const channel = metadata.channel_id || process.env.SLACK_CHANNEL_ID || userId;
+  console.log('Posting to channel:', channel, '(source:', metadata.channel_id ? 'metadata' : process.env.SLACK_CHANNEL_ID ? 'env' : 'userId', ')');
+
+  // ── Google Doc fetch note for progress ──
+  const hasGoogleDoc = !!googleDocMatch;
 
   try {
     // ── Post initial progress message ──
@@ -73,7 +111,8 @@ async function handleBrandCheck(payload) {
     const priorityNote = priorities || avoid
       ? `\n📌 ${priorities ? `Focus: _${priorities.slice(0, 80)}_` : ''}${avoid ? `${priorities ? ' | ' : ''}Avoid: _${avoid.slice(0, 80)}_` : ''}`
       : '';
-    const msg = await slack.postMessage(channel, `🛡️ *Brand Check* for *${titleCase(clientName)}*${priorityNote}\n⏳ Starting...`);
+    const googleNote = hasGoogleDoc ? '\n📄 Content fetched from Google Doc/Sheet' : '';
+    const msg = await slack.postMessage(channel, `🛡️ *Brand Check* for *${titleCase(clientName)}*${priorityNote}${googleNote}\n⏳ Starting...`);
     const msgTs = msg.ts;
 
     // ── Progress callback — updates the message in real time ──

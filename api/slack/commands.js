@@ -5,19 +5,19 @@ const { listCachedBrands } = require('../lib/brand-context');
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { command, trigger_id, text } = req.body;
+  const { command, trigger_id, text, channel_id } = req.body;
 
   if (command === '/brand-check') {
     // Acknowledge immediately, then open modal async
     res.status(200).send('');
-    waitUntil(openBrandCheckModal(trigger_id, text));
+    waitUntil(openBrandCheckModal(trigger_id, text, channel_id));
     return;
   }
 
   res.status(200).send('Unknown command');
 };
 
-async function openBrandCheckModal(triggerId, prefillClient) {
+async function openBrandCheckModal(triggerId, prefillClient, channelId) {
   try {
     // Try to get cached brands for the dropdown
     let brandOptions = [];
@@ -124,7 +124,7 @@ async function openBrandCheckModal(triggerId, prefillClient) {
         type: 'plain_text_input',
         action_id: 'content_input',
         multiline: true,
-        placeholder: { type: 'plain_text', text: 'Paste the article, comment, post, or content here...' },
+        placeholder: { type: 'plain_text', text: 'Paste content OR a Google Docs/Sheets link...' },
       },
     });
 
@@ -172,6 +172,7 @@ async function openBrandCheckModal(triggerId, prefillClient) {
     const modal = {
       type: 'modal',
       callback_id: 'brand_check_submit',
+      private_metadata: JSON.stringify({ channel_id: channelId || '' }),
       title: { type: 'plain_text', text: 'Brand Check' },
       submit: { type: 'plain_text', text: 'Check Alignment' },
       close: { type: 'plain_text', text: 'Cancel' },
