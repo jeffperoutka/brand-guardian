@@ -1,6 +1,9 @@
 {
   "functions": {
-    "api/**": {
+    "api/health.js": {
+      "maxDuration": 300
+    },
+    "api/slack/*.js": {
       "maxDuration": 300
     }
   }
