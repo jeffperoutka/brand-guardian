@@ -1,7 +1,10 @@
 const { waitUntil } = require('@vercel/functions');
 const { slack } = require('../lib/connectors');
-const { getOrBuildBrandProfile } = require('../lib/brand-context');
+const { getOrBuildBrandProfile, listCachedBrands } = require('../lib/brand-context');
 const { analyzeBrandAlignment, formatResultBlocks, CONTENT_TYPES } = require('../lib/engine');
+
+// Prefix for "new client" options in external_select
+const NEW_CLIENT_PREFIX = '__new__:';
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -14,6 +17,12 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid payload' });
   }
 
+  // ── External Select: search-as-you-type for client picker ──
+  if (payload.type === 'block_suggestion') {
+    const query = (payload.value || '').trim().toLowerCase();
+    return res.status(200).json(buildClientSuggestions(query, await getCachedBrandsSafe()));
+  }
+
   // ── Modal Submission ──
   if (payload.type === 'view_submission' && payload.view?.callback_id === 'brand_check_submit') {
     res.status(200).json({ response_action: 'clear' });
@@ -23,6 +32,77 @@ module.exports = async function handler(req, res) {
 
   return res.status(200).json({ response_action: 'clear' });
 };
+
+// ─────────────────────────────────────────────────────────
+// Client search suggestions for external_select
+// ─────────────────────────────────────────────────────────
+
+let _brandsCache = null;
+let _brandsCacheTime = 0;
+const BRANDS_CACHE_TTL = 60_000; // 1 min in-memory cache
+
+async function getCachedBrandsSafe() {
+  if (_brandsCache && Date.now() - _brandsCacheTime < BRANDS_CACHE_TTL) {
+    return _brandsCache;
+  }
+  try {
+    _brandsCache = await listCachedBrands();
+    _brandsCacheTime = Date.now();
+    return _brandsCache;
+  } catch (err) {
+    console.error('Failed to load cached brands:', err.message);
+    return _brandsCache || [];
+  }
+}
+
+function buildClientSuggestions(query, brands) {
+  const options = [];
+
+  // Filter existing brands by query
+  const filtered = query
+    ? brands.filter(b => b.toLowerCase().includes(query))
+    : brands;
+
+  // Add existing brands as options
+  for (const brand of filtered.slice(0, 90)) {
+    options.push({
+      text: { type: 'plain_text', text: titleCase(brand) },
+      value: brand.replace(/\s/g, '-'),
+    });
+  }
+
+  // If the user typed something that doesn't exactly match an existing brand,
+  // show a "➕ Create: {name}" option so they can add a new client
+  if (query && !brands.some(b => b.toLowerCase() === query)) {
+    const displayName = titleCase(query);
+    options.push({
+      text: { type: 'plain_text', text: `➕ Add new client: ${displayName}` },
+      value: `${NEW_CLIENT_PREFIX}${query}`,
+    });
+  }
+
+  // If no query and we want to let them create a new one, add a hint
+  if (!query && brands.length > 0) {
+    options.push({
+      text: { type: 'plain_text', text: '➕ Type a name to add a new client...' },
+      value: '__new_hint__',
+    });
+  }
+
+  // If no brands and no query, tell them to type
+  if (options.length === 0) {
+    options.push({
+      text: { type: 'plain_text', text: '📝 Type a client name...' },
+      value: '__empty__',
+    });
+  }
+
+  return { options };
+}
+
+// ─────────────────────────────────────────────────────────
+// Brand check handler
+// ─────────────────────────────────────────────────────────
 
 /**
  * Main brand check flow — threaded conversation UX:
@@ -44,18 +124,23 @@ async function handleBrandCheck(payload) {
   let clientName = '';
   let websiteUrl = '';
 
-  const selectValue = values?.client_block?.client_select?.selected_option?.value;
-  if (selectValue) {
-    if (selectValue === '__new__') {
-      clientName = values?.new_client_block?.new_client_input?.value || '';
-      websiteUrl = values?.new_url_block?.new_url_input?.value || '';
+  const selectedOption = values?.client_block?.client_select?.selected_option;
+  if (selectedOption) {
+    const val = selectedOption.value;
+
+    if (val.startsWith(NEW_CLIENT_PREFIX)) {
+      // New client from the search — extract the name they typed
+      clientName = val.slice(NEW_CLIENT_PREFIX.length).replace(/-/g, ' ');
+    } else if (val === '__new_hint__' || val === '__empty__') {
+      // They selected the placeholder hint — no client name
+      clientName = '';
     } else {
-      clientName = selectValue.replace(/-/g, ' ');
+      // Existing cached brand
+      clientName = val.replace(/-/g, ' ');
     }
-  } else {
-    clientName = values?.client_text_block?.client_text_input?.value || '';
-    websiteUrl = values?.client_url_block?.client_url_input?.value || '';
   }
+
+  websiteUrl = values?.client_url_block?.client_url_input?.value || '';
 
   const contentType = values?.type_block?.type_select?.selected_option?.value;
   let content = values?.content_block?.content_input?.value;

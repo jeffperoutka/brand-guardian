@@ -1,6 +1,5 @@
 const { waitUntil } = require('@vercel/functions');
 const { slack } = require('../lib/connectors');
-const { listCachedBrands } = require('../lib/brand-context');
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
@@ -19,85 +18,36 @@ module.exports = async function handler(req, res) {
 
 async function openBrandCheckModal(triggerId, prefillClient, channelId) {
   try {
-    // Try to get cached brands for the dropdown
-    let brandOptions = [];
-    try {
-      const brands = await listCachedBrands();
-      brandOptions = brands.map(b => ({
-        text: { type: 'plain_text', text: titleCase(b) },
-        value: b.replace(/\s/g, '-'),
-      }));
-    } catch (err) {
-      console.error('Failed to load cached brands:', err.message);
-    }
-
     const blocks = [];
 
-    // ── Client selection ──
-    if (brandOptions.length > 0) {
-      blocks.push({
-        type: 'input',
-        block_id: 'client_block',
-        label: { type: 'plain_text', text: 'Client' },
-        element: {
-          type: 'static_select',
-          action_id: 'client_select',
-          placeholder: { type: 'plain_text', text: 'Select a client' },
-          options: [
-            ...brandOptions,
-            { text: { type: 'plain_text', text: '+ New Client' }, value: '__new__' },
-          ],
-        },
-      });
-      blocks.push({
-        type: 'input',
-        block_id: 'new_client_block',
-        label: { type: 'plain_text', text: 'New Client Name' },
-        optional: true,
-        element: {
-          type: 'plain_text_input',
-          action_id: 'new_client_input',
-          placeholder: { type: 'plain_text', text: 'Only if you selected "+ New Client" above' },
-        },
-      });
-      blocks.push({
-        type: 'input',
-        block_id: 'new_url_block',
-        label: { type: 'plain_text', text: 'Client Website URL (for new clients)' },
-        optional: true,
-        element: {
-          type: 'url_text_input',
-          action_id: 'new_url_input',
-          placeholder: { type: 'plain_text', text: 'https://www.example.com' },
-        },
-      });
-    } else {
-      // No cached brands yet — text input
-      blocks.push({
-        type: 'input',
-        block_id: 'client_text_block',
-        label: { type: 'plain_text', text: 'Client Name' },
-        element: {
-          type: 'plain_text_input',
-          action_id: 'client_text_input',
-          placeholder: { type: 'plain_text', text: 'Exact name as it appears in ClickUp' },
-          ...(prefillClient ? { initial_value: prefillClient } : {}),
-        },
-      });
-      blocks.push({
-        type: 'input',
-        block_id: 'client_url_block',
-        label: { type: 'plain_text', text: 'Client Website URL' },
-        optional: true,
-        element: {
-          type: 'url_text_input',
-          action_id: 'client_url_input',
-          placeholder: { type: 'plain_text', text: 'https://www.example.com (optional — bot will try to find it)' },
-        },
-      });
-    }
+    // ── Client selection — searchable external select ──
+    // Users type to search existing brands OR type a new name and select "+ Create: {name}"
+    blocks.push({
+      type: 'input',
+      block_id: 'client_block',
+      label: { type: 'plain_text', text: 'Client' },
+      element: {
+        type: 'external_select',
+        action_id: 'client_select',
+        placeholder: { type: 'plain_text', text: 'Search or type a new client name...' },
+        min_query_length: 0, // Show all brands on focus
+      },
+    });
 
-    // ── Content type (manual selection, no auto-detect) ──
+    // ── Website URL (always visible, optional) ──
+    blocks.push({
+      type: 'input',
+      block_id: 'client_url_block',
+      label: { type: 'plain_text', text: 'Client Website URL' },
+      optional: true,
+      element: {
+        type: 'url_text_input',
+        action_id: 'client_url_input',
+        placeholder: { type: 'plain_text', text: 'https://www.example.com (required for new clients)' },
+      },
+    });
+
+    // ── Content type ──
     blocks.push({
       type: 'input',
       block_id: 'type_block',
@@ -183,8 +133,4 @@ async function openBrandCheckModal(triggerId, prefillClient, channelId) {
   } catch (err) {
     console.error('openBrandCheckModal error:', err.message);
   }
-}
-
-function titleCase(str) {
-  return str.replace(/\b\w/g, c => c.toUpperCase());
 }
