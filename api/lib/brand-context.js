@@ -587,9 +587,67 @@ async function listCachedBrands() {
   } catch (err) { return []; }
 }
 
+/**
+ * List all Client Info Docs from ClickUp.
+ * Searches for docs with "Info Doc" / "Client Info" in the name
+ * and returns an array of { name, docId } for each match.
+ * The client name is extracted from the doc name (e.g. "Kobo Pickleball Info Doc" → "Kobo Pickleball").
+ */
+async function listInfoDocs() {
+  const workspaceId = process.env.CLICKUP_WORKSPACE_ID;
+  const token = process.env.CLICKUP_API_TOKEN;
+  if (!workspaceId || !token) return [];
+
+  const searchQueries = ['Info Doc', 'Client Info'];
+  const seen = new Set();
+  const results = [];
+
+  for (const query of searchQueries) {
+    try {
+      const resp = await fetch(`https://api.clickup.com/api/v3/workspaces/${workspaceId}/search`, {
+        method: 'POST',
+        headers: {
+          'Authorization': token,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query, types: ['doc'], limit: 50 }),
+      });
+
+      if (!resp.ok) {
+        console.error(`listInfoDocs search HTTP ${resp.status} for "${query}"`);
+        continue;
+      }
+
+      const data = await resp.json();
+
+      for (const doc of (data.results || [])) {
+        if (seen.has(doc.id)) continue;
+        seen.add(doc.id);
+
+        // Extract client name from doc title
+        // Common patterns: "ClientName Info Doc", "ClientName Client Info", "ClientName info"
+        const name = (doc.name || '')
+          .replace(/\s*(client\s+)?info(\s+doc)?$/i, '')
+          .trim();
+
+        if (name) {
+          results.push({ name, docId: doc.id, docName: doc.name });
+        }
+      }
+    } catch (err) {
+      console.error(`listInfoDocs search error for "${query}":`, err.message);
+    }
+  }
+
+  // Sort alphabetically
+  results.sort((a, b) => a.name.localeCompare(b.name));
+  return results;
+}
+
 module.exports = {
   getOrBuildBrandProfile,
   listCachedBrands,
+  listInfoDocs,
   findClientInfoDoc,
   readDocContent,
   appendResearchToDoc,

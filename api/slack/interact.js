@@ -1,6 +1,6 @@
 const { waitUntil } = require('@vercel/functions');
 const { slack } = require('../lib/connectors');
-const { getOrBuildBrandProfile, listCachedBrands } = require('../lib/brand-context');
+const { getOrBuildBrandProfile, listInfoDocs } = require('../lib/brand-context');
 const { analyzeBrandAlignment, formatResultBlocks, CONTENT_TYPES } = require('../lib/engine');
 
 // Prefix for "new client" options in external_select
@@ -20,7 +20,7 @@ module.exports = async function handler(req, res) {
   // ── External Select: search-as-you-type for client picker ──
   if (payload.type === 'block_suggestion') {
     const query = (payload.value || '').trim().toLowerCase();
-    return res.status(200).json(buildClientSuggestions(query, await getCachedBrandsSafe()));
+    return res.status(200).json(buildClientSuggestions(query, await getInfoDocsSafe()));
   }
 
   // ── Modal Submission ──
@@ -37,43 +37,48 @@ module.exports = async function handler(req, res) {
 // Client search suggestions for external_select
 // ─────────────────────────────────────────────────────────
 
-let _brandsCache = null;
-let _brandsCacheTime = 0;
-const BRANDS_CACHE_TTL = 60_000; // 1 min in-memory cache
+let _infoDocsCache = null;
+let _infoDocsCacheTime = 0;
+const INFO_DOCS_CACHE_TTL = 60_000; // 1 min in-memory cache
 
-async function getCachedBrandsSafe() {
-  if (_brandsCache && Date.now() - _brandsCacheTime < BRANDS_CACHE_TTL) {
-    return _brandsCache;
+async function getInfoDocsSafe() {
+  if (_infoDocsCache && Date.now() - _infoDocsCacheTime < INFO_DOCS_CACHE_TTL) {
+    return _infoDocsCache;
   }
   try {
-    _brandsCache = await listCachedBrands();
-    _brandsCacheTime = Date.now();
-    return _brandsCache;
+    _infoDocsCache = await listInfoDocs();
+    _infoDocsCacheTime = Date.now();
+    return _infoDocsCache;
   } catch (err) {
-    console.error('Failed to load cached brands:', err.message);
-    return _brandsCache || [];
+    console.error('Failed to load info docs:', err.message);
+    return _infoDocsCache || [];
   }
 }
 
-function buildClientSuggestions(query, brands) {
+/**
+ * Build dropdown options from ClickUp Info Docs.
+ * Each Info Doc becomes a selectable client.
+ * Typing a name that doesn't match shows "➕ Add new client: {name}".
+ */
+function buildClientSuggestions(query, infoDocs) {
   const options = [];
 
-  // Filter existing brands by query
+  // Filter Info Docs by query
   const filtered = query
-    ? brands.filter(b => b.toLowerCase().includes(query))
-    : brands;
+    ? infoDocs.filter(d => d.name.toLowerCase().includes(query))
+    : infoDocs;
 
-  // Add existing brands as options
-  for (const brand of filtered.slice(0, 90)) {
+  // Add existing Info Doc clients as options
+  for (const doc of filtered.slice(0, 90)) {
     options.push({
-      text: { type: 'plain_text', text: titleCase(brand) },
-      value: brand.replace(/\s/g, '-'),
+      text: { type: 'plain_text', text: doc.name },
+      value: doc.name.toLowerCase().replace(/\s/g, '-'),
     });
   }
 
-  // If the user typed something that doesn't exactly match an existing brand,
-  // show a "➕ Create: {name}" option so they can add a new client
-  if (query && !brands.some(b => b.toLowerCase() === query)) {
+  // If the user typed something that doesn't exactly match an existing client,
+  // show a "➕ Add new client: {name}" option
+  if (query && !infoDocs.some(d => d.name.toLowerCase() === query)) {
     const displayName = titleCase(query);
     options.push({
       text: { type: 'plain_text', text: `➕ Add new client: ${displayName}` },
@@ -81,15 +86,15 @@ function buildClientSuggestions(query, brands) {
     });
   }
 
-  // If no query and we want to let them create a new one, add a hint
-  if (!query && brands.length > 0) {
+  // If no query and docs exist, add a hint for new clients
+  if (!query && infoDocs.length > 0) {
     options.push({
       text: { type: 'plain_text', text: '➕ Type a name to add a new client...' },
       value: '__new_hint__',
     });
   }
 
-  // If no brands and no query, tell them to type
+  // If nothing at all, tell them to type
   if (options.length === 0) {
     options.push({
       text: { type: 'plain_text', text: '📝 Type a client name...' },
