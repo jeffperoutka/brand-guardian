@@ -594,11 +594,15 @@ async function listCachedBrands() {
  * The client name is extracted from the doc name (e.g. "Kobo Pickleball Info Doc" → "Kobo Pickleball").
  */
 async function listInfoDocs() {
-  const workspaceId = process.env.CLICKUP_WORKSPACE_ID;
-  const token = process.env.CLICKUP_API_TOKEN;
+  const workspaceId = (process.env.CLICKUP_WORKSPACE_ID || '').trim();
+  const token = (process.env.CLICKUP_API_TOKEN || '').trim();
 
-  console.log('[listInfoDocs] workspaceId:', workspaceId ? `${workspaceId.slice(0, 6)}...` : 'MISSING');
-  console.log('[listInfoDocs] token:', token ? `${token.slice(0, 6)}...` : 'MISSING');
+  console.log('[listInfoDocs] ENV:', JSON.stringify({
+    wid: workspaceId,
+    widLen: workspaceId.length,
+    hasToken: !!token,
+    tokenLen: token.length,
+  }));
 
   if (!workspaceId || !token) {
     console.error('[listInfoDocs] Missing CLICKUP_WORKSPACE_ID or CLICKUP_API_TOKEN');
@@ -608,12 +612,11 @@ async function listInfoDocs() {
   const seen = new Set();
   const results = [];
 
-  // Search for "Client Info Doc" — this matches the naming convention
   const query = 'Client Info Doc';
   const url = `https://api.clickup.com/api/v3/workspaces/${workspaceId}/search`;
 
   try {
-    console.log('[listInfoDocs] Searching ClickUp:', url);
+    console.log('[listInfoDocs] POST', url);
     const resp = await fetch(url, {
       method: 'POST',
       headers: {
