@@ -596,51 +596,70 @@ async function listCachedBrands() {
 async function listInfoDocs() {
   const workspaceId = process.env.CLICKUP_WORKSPACE_ID;
   const token = process.env.CLICKUP_API_TOKEN;
-  if (!workspaceId || !token) return [];
 
-  const searchQueries = ['Info Doc', 'Client Info'];
+  console.log('[listInfoDocs] workspaceId:', workspaceId ? `${workspaceId.slice(0, 6)}...` : 'MISSING');
+  console.log('[listInfoDocs] token:', token ? `${token.slice(0, 6)}...` : 'MISSING');
+
+  if (!workspaceId || !token) {
+    console.error('[listInfoDocs] Missing CLICKUP_WORKSPACE_ID or CLICKUP_API_TOKEN');
+    return [];
+  }
+
   const seen = new Set();
   const results = [];
 
-  for (const query of searchQueries) {
-    try {
-      const resp = await fetch(`https://api.clickup.com/api/v3/workspaces/${workspaceId}/search`, {
-        method: 'POST',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ query, types: ['doc'], limit: 50 }),
-      });
+  // Search for "Client Info Doc" — this matches the naming convention
+  const query = 'Client Info Doc';
+  const url = `https://api.clickup.com/api/v3/workspaces/${workspaceId}/search`;
 
-      if (!resp.ok) {
-        console.error(`listInfoDocs search HTTP ${resp.status} for "${query}"`);
-        continue;
-      }
+  try {
+    console.log('[listInfoDocs] Searching ClickUp:', url);
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': token,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query, types: ['doc'], limit: 50 }),
+    });
 
-      const data = await resp.json();
-
-      for (const doc of (data.results || [])) {
-        if (seen.has(doc.id)) continue;
-        seen.add(doc.id);
-
-        // Extract client name from doc title
-        // Common patterns: "ClientName Info Doc", "ClientName Client Info", "ClientName info"
-        const name = (doc.name || '')
-          .replace(/\s*(client\s+)?info(\s+doc)?$/i, '')
-          .trim();
-
-        if (name) {
-          results.push({ name, docId: doc.id, docName: doc.name });
-        }
-      }
-    } catch (err) {
-      console.error(`listInfoDocs search error for "${query}":`, err.message);
+    if (!resp.ok) {
+      const errBody = await resp.text().catch(() => 'unknown');
+      console.error(`[listInfoDocs] HTTP ${resp.status}: ${errBody.slice(0, 500)}`);
+      return [];
     }
+
+    const data = await resp.json();
+    console.log(`[listInfoDocs] Found ${data.results?.length || 0} docs`);
+
+    for (const doc of (data.results || [])) {
+      if (seen.has(doc.id)) continue;
+      seen.add(doc.id);
+
+      const docName = doc.name || '';
+
+      // Skip templates and non-client docs
+      if (/template/i.test(docName)) continue;
+      if (/definitions/i.test(docName)) continue;
+      if (/^sprint\s+\d/i.test(docName)) continue;
+
+      // Extract client name from doc title
+      // Patterns: "ClientName Client Info Doc", "ClientName Info Doc", "ClientName info"
+      const name = docName
+        .replace(/\s*(client\s+)?info(\s+doc)?$/i, '')
+        .trim();
+
+      if (name) {
+        results.push({ name, docId: doc.id, docName });
+      }
+    }
+  } catch (err) {
+    console.error(`[listInfoDocs] Error:`, err.message);
   }
 
   // Sort alphabetically
   results.sort((a, b) => a.name.localeCompare(b.name));
+  console.log(`[listInfoDocs] Returning ${results.length} clients:`, results.map(r => r.name).join(', '));
   return results;
 }
 
