@@ -1,7 +1,7 @@
 const { waitUntil } = require('@vercel/functions');
-const { slack } = require('../lib/connectors');
-const { getOrBuildBrandProfile, listInfoDocs } = require('../lib/brand-context');
-const { analyzeBrandAlignment, formatResultBlocks, CONTENT_TYPES } = require('../lib/engine');
+const { slack } = require('../_lib/connectors');
+const { getOrBuildBrandProfile, listInfoDocs } = require('../_lib/brand-context');
+const { analyzeBrandAlignment, formatResultBlocks, CONTENT_TYPES } = require('../_lib/engine');
 
 // Prefix for "new client" options in external_select
 const NEW_CLIENT_PREFIX = '__new__:';
@@ -177,7 +177,7 @@ async function handleBrandCheck(payload) {
         if (gdContent.length > 50) {
           if (isSheet) {
             // Smart extraction: use Claude to pull actual content from CSV columns
-            const { extractSheetContent } = require('../lib/utils/sheets-extractor');
+            const { extractSheetContent } = require('../_lib/utils/sheets-extractor');
             const extraction = await extractSheetContent(gdContent, contentType, content.trim());
 
             if (extraction.fallback) {

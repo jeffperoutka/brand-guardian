@@ -1,5 +1,5 @@
 const { waitUntil } = require('@vercel/functions');
-const { slack } = require('../lib/connectors');
+const { slack } = require('../_lib/connectors');
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();

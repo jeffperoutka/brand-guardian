@@ -1,7 +1,7 @@
 const { waitUntil } = require('@vercel/functions');
-const { slack } = require('../lib/connectors');
-const { askClaude } = require('../lib/connectors/claude');
-const { rules } = require('../lib/connectors');
+const { slack } = require('../_lib/connectors');
+const { askClaude } = require('../_lib/connectors/claude');
+const { rules } = require('../_lib/connectors');
 
 const processedEvents = new Set();
 
