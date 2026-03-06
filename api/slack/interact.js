@@ -161,6 +161,7 @@ async function handleBrandCheck(payload) {
   // ── Detect Google Docs/Sheets links and fetch content ──
   const googleDocMatch = content.trim().match(/docs\.google\.com\/(?:document|spreadsheets)\/d\/([a-zA-Z0-9_-]+)/);
   let isSheet = false;
+  let sheetExtracted = false;
   if (googleDocMatch) {
     const docId = googleDocMatch[1];
     isSheet = content.includes('/spreadsheets/');
@@ -174,8 +175,27 @@ async function handleBrandCheck(payload) {
       if (gdResp.ok) {
         const gdContent = await gdResp.text();
         if (gdContent.length > 50) {
-          content = `[Fetched from Google ${isSheet ? 'Sheet' : 'Doc'}: ${content.trim()}]\n\n${gdContent.slice(0, 50000)}`;
-          console.log(`Google doc fetched: ${gdContent.length} chars`);
+          if (isSheet) {
+            // Smart extraction: use Claude to pull actual content from CSV columns
+            const { extractSheetContent } = require('../lib/utils/sheets-extractor');
+            const extraction = await extractSheetContent(gdContent, contentType, content.trim());
+
+            if (extraction.fallback) {
+              content = `[Fetched from Google Sheet (raw CSV): ${content.trim()}]\n\n${gdContent.slice(0, 50000)}`;
+              console.log(`Sheet extraction fell back: ${extraction.extractionMethod}`);
+            } else {
+              sheetExtracted = true;
+              const contextLine = extraction.contextData
+                ? `[Sheet context: ${JSON.stringify(extraction.contextData)}]\n`
+                : '';
+              content = `[Extracted from Google Sheet: ${content.trim()}]\n[${extraction.extractionMethod}]\n${contextLine}\n${extraction.extractedContent}`;
+              console.log(`Sheet content extracted: ${extraction.extractedContent.length} chars`);
+            }
+          } else {
+            // Google Doc: fetch as plain text (existing behavior)
+            content = `[Fetched from Google Doc: ${content.trim()}]\n\n${gdContent.slice(0, 50000)}`;
+            console.log(`Google doc fetched: ${gdContent.length} chars`);
+          }
         } else {
           console.log('Google doc fetch returned minimal content, using original');
         }
@@ -198,7 +218,7 @@ async function handleBrandCheck(payload) {
   };
 
   const contentPreview = googleDocMatch
-    ? `Fetched from Google ${isSheet ? 'Sheet' : 'Doc'} (${content.length.toLocaleString()} chars)`
+    ? `${sheetExtracted ? 'Extracted from' : 'Fetched from'} Google ${isSheet ? 'Sheet' : 'Doc'} (${content.length.toLocaleString()} chars)`
     : `${content.slice(0, 150).replace(/\n/g, ' ')}${content.length > 150 ? '...' : ''} _(${content.length.toLocaleString()} chars)_`;
 
   const recapLines = [
