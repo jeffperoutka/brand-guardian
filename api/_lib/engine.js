@@ -218,10 +218,29 @@ ${content.slice(0, 15000)}
   const result = await askClaudeLong(systemPrompt, userContent, { maxTokens: 6000, timeout: 120000 });
 
   try {
-    return JSON.parse(result.replace(/^```(?:json)?\s*/m, '').replace(/\s*```$/m, '').trim());
+    const cleaned = result.replace(/^```(?:json)?\s*/m, '').replace(/\s*```$/m, '').trim();
+    return JSON.parse(cleaned);
   } catch (err) {
     console.error('Parse alignment result failed:', err.message);
-    return { overallAlignment: 'ERROR', summary: 'Analysis failed to parse. Check logs.', raw: result };
+    console.error('Raw result (first 500 chars):', result.slice(0, 500));
+    console.error('Raw result (last 500 chars):', result.slice(-500));
+
+    // Try to extract JSON from the response (Claude sometimes adds preamble)
+    const jsonMatch = result.match(/\{[\s\S]*"overallAlignment"[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        return JSON.parse(jsonMatch[0]);
+      } catch (e) {
+        console.error('Secondary parse also failed:', e.message);
+      }
+    }
+
+    // Last resort: return a readable error with whatever Claude said
+    const summaryMatch = result.match(/"summary"\s*:\s*"([^"]+)"/);
+    return {
+      overallAlignment: 'ERROR',
+      summary: summaryMatch?.[1] || `Analysis completed but output was malformed. Raw response length: ${result.length} chars. This usually means the input was too large or complex.`,
+    };
   }
 }
 

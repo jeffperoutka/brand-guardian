@@ -219,31 +219,61 @@ ${(research.keyMessages || []).map(m => `- ${m}`).join('\n') || 'Not specified'}
 ### Industry Context
 ${research.industryContext || 'Not available'}`;
 
+  const token = (process.env.CLICKUP_API_TOKEN || '').trim();
+  console.log(`[appendResearchToDoc] Appending to doc ${docId}, page ${pageId}, workspace ${workspaceId}, token starts: ${token.slice(0, 6)}...`);
+
   try {
-    const resp = await fetch(
-      `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs/${docId}/pages/${pageId}`,
-      {
-        method: 'PUT',
+    // Try v3 API first
+    const url = `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs/${docId}/pages/${pageId}`;
+    console.log(`[appendResearchToDoc] PUT ${url}`);
+
+    const resp = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Authorization': token,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        content: researchMarkdown,
+        content_format: 'text/md',
+        content_edit_mode: 'append',
+      }),
+    });
+
+    const respText = await resp.text();
+    console.log(`[appendResearchToDoc] Response ${resp.status}: ${respText.slice(0, 300)}`);
+
+    if (!resp.ok) {
+      console.error(`[appendResearchToDoc] ClickUp append failed HTTP ${resp.status}`);
+
+      // Try creating a NEW page instead of appending
+      console.log('[appendResearchToDoc] Trying fallback: create new page...');
+      const newPageUrl = `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs/${docId}/pages`;
+      const newPageResp = await fetch(newPageUrl, {
+        method: 'POST',
         headers: {
-          'Authorization': process.env.CLICKUP_API_TOKEN,
+          'Authorization': token,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          name: `🛡️ Brand Guardian Research — ${clientName}`,
           content: researchMarkdown,
           content_format: 'text/md',
-          content_edit_mode: 'append',
         }),
+      });
+
+      const newPageText = await newPageResp.text();
+      console.log(`[appendResearchToDoc] New page response ${newPageResp.status}: ${newPageText.slice(0, 300)}`);
+
+      if (newPageResp.ok) {
+        try { return JSON.parse(newPageText); } catch { return { ok: true }; }
       }
-    );
-    if (!resp.ok) {
-      console.error(`ClickUp append HTTP ${resp.status}:`, await resp.text().catch(() => ''));
       return null;
     }
-    const result = await resp.json();
-    console.log('appendResearchToDoc result:', JSON.stringify(result).slice(0, 200));
-    return result;
+
+    try { return JSON.parse(respText); } catch { return { ok: true }; }
   } catch (err) {
-    console.error('appendResearchToDoc error:', err.message);
+    console.error('[appendResearchToDoc] error:', err.message);
     return null;
   }
 }

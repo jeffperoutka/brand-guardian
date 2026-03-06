@@ -120,9 +120,9 @@ async function identifyColumns(headers, sampleRows, contentType) {
 
   const systemPrompt = `You identify spreadsheet column roles. Respond ONLY with valid JSON, no markdown.`;
 
-  const sampleData = sampleRows.slice(0, 3).map(r => {
+  const sampleData = sampleRows.slice(0, 2).map(r => {
     const obj = {};
-    headers.forEach(h => { if (r[h]) obj[h] = r[h].slice(0, 200); });
+    headers.forEach(h => { if (r[h]) obj[h] = r[h].slice(0, 150); });
     return obj;
   });
 
@@ -148,7 +148,7 @@ Respond with:
 Map metaColumns keys to actual header names found. Only include keys where a matching header exists.`;
 
   try {
-    const result = await askClaude(systemPrompt, userPrompt, { maxTokens: 1000, timeout: 10000 });
+    const result = await askClaude(systemPrompt, userPrompt, { maxTokens: 1000, timeout: 45000, model: 'claude-haiku-4-5-20251001' });
     const jsonStr = result.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     return JSON.parse(jsonStr);
   } catch (err) {

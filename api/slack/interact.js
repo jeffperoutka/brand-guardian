@@ -181,7 +181,7 @@ async function handleBrandCheck(payload) {
             const extraction = await extractSheetContent(gdContent, contentType, content.trim());
 
             if (extraction.fallback) {
-              content = `[Fetched from Google Sheet (raw CSV): ${content.trim()}]\n\n${gdContent.slice(0, 50000)}`;
+              content = `[Fetched from Google Sheet (raw CSV — smart extraction failed): ${content.trim()}]\n[Note: Could not identify content columns. Analyzing raw CSV data — results may be less precise.]\n\n${gdContent.slice(0, 12000)}`;
               console.log(`Sheet extraction fell back: ${extraction.summary}`);
             } else {
               sheetExtracted = true;
