@@ -29,44 +29,72 @@ const RESEARCH_MARKER_CHECK = '## 🛡️ Brand Guardian Research';
  * Search ClickUp for a client's Info Doc
  */
 async function findClientInfoDoc(clientName) {
-  const workspaceId = process.env.CLICKUP_WORKSPACE_ID;
+  const workspaceId = (process.env.CLICKUP_WORKSPACE_ID || '').trim();
+  const token = (process.env.CLICKUP_API_TOKEN || '').trim();
 
-  const queries = [
-    `${clientName} Info Doc`,
-    `${clientName} Client Info`,
-    `${clientName} info`,
-  ];
-
-  for (const query of queries) {
-    try {
-      const resp = await fetch(`https://api.clickup.com/api/v3/workspaces/${workspaceId}/search`, {
-        method: 'POST',
-        headers: {
-          'Authorization': process.env.CLICKUP_API_TOKEN,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ query, types: ['doc'], limit: 5 }),
-      });
-
-      if (!resp.ok) {
-        const errText = await resp.text().catch(() => 'unknown');
-        console.error(`ClickUp search HTTP ${resp.status} for "${query}":`, errText.slice(0, 200));
-        continue;
-      }
-
-      const data = await resp.json();
-
-      if (data.results?.length > 0) {
-        const match = data.results.find(r =>
-          r.name?.toLowerCase().includes(clientName.toLowerCase())
-        ) || data.results[0];
-        return { docId: match.id, docName: match.name };
-      }
-    } catch (err) {
-      console.error(`Search failed for "${query}":`, err.message);
-    }
+  if (!workspaceId || !token) {
+    console.error('[findClientInfoDoc] Missing CLICKUP_WORKSPACE_ID or CLICKUP_API_TOKEN');
+    return null;
   }
-  return null;
+
+  const clientLower = clientName.toLowerCase().trim();
+  console.log(`[findClientInfoDoc] Looking for Info Doc for client: "${clientName}"`);
+
+  try {
+    // Use the v3 docs listing endpoint (v3 search returns 404)
+    const resp = await fetch(`https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs`, {
+      method: 'GET',
+      headers: { 'Authorization': token, 'Content-Type': 'application/json' },
+    });
+
+    if (!resp.ok) {
+      const errText = await resp.text().catch(() => 'unknown');
+      console.error(`[findClientInfoDoc] ClickUp docs API HTTP ${resp.status}:`, errText.slice(0, 200));
+      return null;
+    }
+
+    const data = await resp.json();
+    const docs = data.docs || data.results || data.data || [];
+    console.log(`[findClientInfoDoc] Got ${docs.length} docs, searching for "${clientLower}"`);
+
+    // Try to find a matching Info Doc
+    for (const doc of docs) {
+      const docName = (doc.name || doc.title || '').toLowerCase();
+
+      // Must be an Info Doc
+      if (!/(info|client info)/i.test(docName)) continue;
+
+      // Check if client name appears in the doc title
+      if (docName.includes(clientLower)) {
+        const docId = doc.id || doc.doc_id;
+        console.log(`[findClientInfoDoc] Found match: "${doc.name}" (ID: ${docId})`);
+        return { docId, docName: doc.name || doc.title };
+      }
+    }
+
+    // Fallback: try partial matching (e.g., "neurogan" matches "Neurogan Health Client Info Doc")
+    for (const doc of docs) {
+      const docName = (doc.name || doc.title || '').toLowerCase();
+      if (!/(info|client info)/i.test(docName)) continue;
+
+      // Extract client name from doc title and compare
+      const extractedName = docName
+        .replace(/\s*(client\s+)?info(\s+doc)?$/i, '')
+        .trim();
+
+      if (extractedName.includes(clientLower) || clientLower.includes(extractedName)) {
+        const docId = doc.id || doc.doc_id;
+        console.log(`[findClientInfoDoc] Partial match: "${doc.name}" (ID: ${docId})`);
+        return { docId, docName: doc.name || doc.title };
+      }
+    }
+
+    console.log(`[findClientInfoDoc] No Info Doc found for "${clientName}"`);
+    return null;
+  } catch (err) {
+    console.error(`[findClientInfoDoc] Error:`, err.message);
+    return null;
+  }
 }
 
 /**
