@@ -585,16 +585,22 @@ async function getOrBuildBrandProfile(clientName, websiteUrl, progressCallback, 
   }
 
   // APPEND research to the existing doc page if we have one
+  let savedToDoc = false;
   if (docInfo && mainPageId) {
     if (progressCallback) await progressCallback('Appending research to Client Info Doc...');
-    await appendResearchToDoc(docInfo.docId, mainPageId, clientName, research);
+    const appendResult = await appendResearchToDoc(docInfo.docId, mainPageId, clientName, research);
+    savedToDoc = !!appendResult;
+    if (!savedToDoc) {
+      console.error(`[getOrBuildBrandProfile] Failed to append research to doc ${docInfo.docId}`);
+      if (progressCallback) await progressCallback('⚠️ Research complete but failed to save to ClickUp doc. Continuing...');
+    }
   }
 
   // Cache
   const profileWithMeta = { ...research, clientName, cachedAt: new Date().toISOString(), cacheKey };
   await github.writeFile(`${BRAND_CACHE_PREFIX}/${cacheKey}.json`, profileWithMeta, `brand-cache: ${clientName}`);
 
-  return { profile: profileWithMeta, source: 'new_research', researchNeeded: true };
+  return { profile: profileWithMeta, source: 'new_research', researchNeeded: true, savedToDoc };
 }
 
 /**

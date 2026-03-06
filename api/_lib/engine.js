@@ -177,8 +177,26 @@ OUTPUT — respond with valid JSON only, no markdown fences:
     "note": "Brief voice assessment"
   },
   "flaggedClaims": ["Any product claims, stats, or features that seem inaccurate or unverifiable"],
-  "topFixes": ["Top 3 most impactful changes to improve alignment, in priority order"]
+  "topFixes": ["Top 3 most impactful changes to improve alignment, in priority order"],
+  "rowAnalysis": [
+    {
+      "row": 2,
+      "status": "ALIGNED | NEEDS_WORK | NOT_ALIGNED",
+      "summary": "One sentence verdict for this specific row",
+      "issues": ["Specific issue with fix suggestion"],
+      "quote": "Key excerpt from this row's content"
+    }
+  ]
 }
+
+IMPORTANT — ROW-LEVEL ANALYSIS:
+If the content contains "--- ROW X ---" markers, it came from a Google Sheet. You MUST:
+1. Analyze EACH row individually and populate the "rowAnalysis" array.
+2. Reference the specific row number in your aligned/misaligned elements.
+3. Quote specific text from individual rows, not generic observations.
+4. Mention any metadata (URLs, subreddit, status) from each row that's relevant.
+5. If a row's content has links, acknowledge them and assess whether they're appropriate.
+If there are no row markers, omit the rowAnalysis field entirely.
 
 RULES:
 1. Be useful, not nitpicky. Only flag things that genuinely affect brand alignment.
@@ -276,6 +294,25 @@ function formatResultBlocks(analysis, clientName, contentType) {
       type: 'section',
       text: { type: 'mrkdwn', text: `*⚠️ Flagged Claims:*\n${analysis.flaggedClaims.map(c => `• ${c}`).join('\n')}` },
     });
+  }
+
+  // Row-Level Analysis (for spreadsheet content)
+  if (analysis.rowAnalysis?.length > 0) {
+    blocks.push({ type: 'divider' });
+    const statusEmoji = { ALIGNED: '✅', NEEDS_WORK: '⚠️', NOT_ALIGNED: '❌' };
+    let rowText = '*📊 Row-by-Row Analysis:*\n';
+    for (const row of analysis.rowAnalysis.slice(0, 10)) {
+      const re = statusEmoji[row.status] || '❓';
+      rowText += `\n${re} *Row ${row.row}:* ${row.summary}`;
+      if (row.quote) rowText += `\n  _"${row.quote.slice(0, 150)}"_`;
+      if (row.issues?.length > 0) {
+        for (const issue of row.issues.slice(0, 3)) {
+          rowText += `\n  💡 ${issue}`;
+        }
+      }
+      rowText += '\n';
+    }
+    blocks.push({ type: 'section', text: { type: 'mrkdwn', text: rowText } });
   }
 
   // Top Fixes

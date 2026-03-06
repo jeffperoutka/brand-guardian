@@ -159,7 +159,7 @@ async function handleBrandCheck(payload) {
   }
 
   // ── Detect Google Docs/Sheets links and fetch content ──
-  const googleDocMatch = content.trim().match(/docs\.google\.com\/(?:document|spreadsheets)\/d\/([a-zA-Z0-9_-]+)/);
+  const googleDocMatch = content.trim().match(/docs\.google\.com\/(?:document|spreadsheets)\/(?:u\/\d+\/)?d\/([a-zA-Z0-9_-]+)/);
   let isSheet = false;
   let sheetExtracted = false;
   if (googleDocMatch) {
@@ -176,20 +176,25 @@ async function handleBrandCheck(payload) {
         const gdContent = await gdResp.text();
         if (gdContent.length > 50) {
           if (isSheet) {
-            // Smart extraction: use Claude to pull actual content from CSV columns
+            // Smart extraction: parse CSV and return structured per-row data
             const { extractSheetContent } = require('../_lib/utils/sheets-extractor');
             const extraction = await extractSheetContent(gdContent, contentType, content.trim());
 
             if (extraction.fallback) {
               content = `[Fetched from Google Sheet (raw CSV): ${content.trim()}]\n\n${gdContent.slice(0, 50000)}`;
-              console.log(`Sheet extraction fell back: ${extraction.extractionMethod}`);
+              console.log(`Sheet extraction fell back: ${extraction.summary}`);
             } else {
               sheetExtracted = true;
-              const contextLine = extraction.contextData
-                ? `[Sheet context: ${JSON.stringify(extraction.contextData)}]\n`
-                : '';
-              content = `[Extracted from Google Sheet: ${content.trim()}]\n[${extraction.extractionMethod}]\n${contextLine}\n${extraction.extractedContent}`;
-              console.log(`Sheet content extracted: ${extraction.extractedContent.length} chars`);
+              // Build structured content for per-row analysis
+              const rowTexts = extraction.rows.map((r, i) => {
+                const metaLine = Object.entries(r.meta || {})
+                  .filter(([k, v]) => v)
+                  .map(([k, v]) => `${k}: ${v}`)
+                  .join(' | ');
+                return `--- ROW ${r.rowNum} ---${metaLine ? `\n[${metaLine}]` : ''}\n${r.content}`;
+              }).join('\n\n');
+              content = `[Extracted from Google Sheet: ${content.trim()}]\n[${extraction.summary}]\n[IMPORTANT: Analyze EACH row individually. Call out specific issues per row.]\n\n${rowTexts}`;
+              console.log(`Sheet content extracted: ${extraction.rows.length} rows, ${rowTexts.length} chars`);
             }
           } else {
             // Google Doc: fetch as plain text (existing behavior)
@@ -289,7 +294,7 @@ async function handleBrandCheck(payload) {
     // ── PHASE 1: Get or build brand profile ──
     await updateProgress('Loading brand profile...');
 
-    const { profile, source, error, researchNeeded } = await getOrBuildBrandProfile(
+    const { profile, source, error, researchNeeded, savedToDoc } = await getOrBuildBrandProfile(
       clientName,
       websiteUrl,
       updateProgress,
@@ -304,7 +309,8 @@ async function handleBrandCheck(payload) {
     }
 
     if (researchNeeded) {
-      await updateProgress('Deep research complete — saved to ClickUp. Now analyzing content...');
+      const saveNote = savedToDoc !== false ? 'saved to ClickUp' : 'could not save to ClickUp';
+      await updateProgress(`Deep research complete — ${saveNote}. Now analyzing content...`);
     } else if (source === 'cache') {
       await updateProgress('Brand profile loaded from cache. Analyzing content...');
     } else {
@@ -317,9 +323,12 @@ async function handleBrandCheck(payload) {
     const analysis = await analyzeBrandAlignment(content, profile, contentType, notes, { priorities, avoid });
 
     // ── PHASE 3: Update progress to done ──
-    const doneText = researchNeeded
-      ? '✅ Complete — deep brand research was run and saved to the ClickUp Info Doc.'
-      : '✅ Analysis complete.';
+    let doneText = '✅ Analysis complete.';
+    if (researchNeeded) {
+      doneText = savedToDoc !== false
+        ? '✅ Complete — deep brand research was run and saved to the ClickUp Info Doc.'
+        : '✅ Complete — deep brand research was run. ⚠️ Could not save to ClickUp Info Doc (check API token/permissions).';
+    }
     await slack.updateMessage(channel, progressTs, doneText);
 
     // ── PHASE 4: Post results as separate thread reply ──
