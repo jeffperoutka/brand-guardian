@@ -597,73 +597,96 @@ async function listInfoDocs() {
   const workspaceId = (process.env.CLICKUP_WORKSPACE_ID || '').trim();
   const token = (process.env.CLICKUP_API_TOKEN || '').trim();
 
-  console.log('[listInfoDocs] ENV:', JSON.stringify({
-    wid: workspaceId,
-    widLen: workspaceId.length,
-    hasToken: !!token,
-    tokenLen: token.length,
-  }));
-
   if (!workspaceId || !token) {
     console.error('[listInfoDocs] Missing CLICKUP_WORKSPACE_ID or CLICKUP_API_TOKEN');
     return [];
   }
 
-  const seen = new Set();
-  const results = [];
+  const headers = { 'Authorization': token, 'Content-Type': 'application/json' };
 
-  const query = 'Client Info Doc';
-  const url = `https://api.clickup.com/api/v3/workspaces/${workspaceId}/search`;
-
-  try {
-    console.log('[listInfoDocs] POST', url);
-    const resp = await fetch(url, {
+  // Try multiple ClickUp API approaches since v3 search returns 404
+  const approaches = [
+    {
+      name: 'v3-docs-list',
+      url: `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs`,
+      method: 'GET',
+      extractDocs: (data) => data.docs || data.results || data.data || [],
+    },
+    {
+      name: 'v3-search',
+      url: `https://api.clickup.com/api/v3/workspaces/${workspaceId}/search`,
       method: 'POST',
-      headers: {
-        'Authorization': token,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ query, types: ['doc'], limit: 50 }),
-    });
+      body: JSON.stringify({ query: 'Client Info Doc', types: ['doc'], limit: 50 }),
+      extractDocs: (data) => data.results || [],
+    },
+    {
+      name: 'v2-search',
+      url: `https://api.clickup.com/api/v2/team/${workspaceId}/doc`,
+      method: 'GET',
+      extractDocs: (data) => data.docs || data.results || data.data || [],
+    },
+  ];
 
-    if (!resp.ok) {
-      const errBody = await resp.text().catch(() => 'unknown');
-      console.error(`[listInfoDocs] HTTP ${resp.status}: ${errBody.slice(0, 500)}`);
-      return [];
-    }
+  for (const approach of approaches) {
+    try {
+      console.log(`[listInfoDocs] Trying ${approach.name}: ${approach.method} ${approach.url}`);
 
-    const data = await resp.json();
-    console.log(`[listInfoDocs] Found ${data.results?.length || 0} docs`);
+      const fetchOpts = { method: approach.method, headers };
+      if (approach.body) fetchOpts.body = approach.body;
 
-    for (const doc of (data.results || [])) {
-      if (seen.has(doc.id)) continue;
-      seen.add(doc.id);
+      const resp = await fetch(approach.url, fetchOpts);
 
-      const docName = doc.name || '';
-
-      // Skip templates and non-client docs
-      if (/template/i.test(docName)) continue;
-      if (/definitions/i.test(docName)) continue;
-      if (/^sprint\s+\d/i.test(docName)) continue;
-
-      // Extract client name from doc title
-      // Patterns: "ClientName Client Info Doc", "ClientName Info Doc", "ClientName info"
-      const name = docName
-        .replace(/\s*(client\s+)?info(\s+doc)?$/i, '')
-        .trim();
-
-      if (name) {
-        results.push({ name, docId: doc.id, docName });
+      if (!resp.ok) {
+        const errBody = await resp.text().catch(() => 'unknown');
+        console.log(`[listInfoDocs] ${approach.name} → HTTP ${resp.status}: ${errBody.slice(0, 200)}`);
+        continue; // Try next approach
       }
+
+      const data = await resp.json();
+      const docs = approach.extractDocs(data);
+      console.log(`[listInfoDocs] ${approach.name} → ${docs.length} docs found`);
+
+      if (docs.length === 0) continue;
+
+      // Parse docs into client list
+      const results = [];
+      const seen = new Set();
+
+      for (const doc of docs) {
+        const docId = doc.id || doc.doc_id;
+        if (!docId || seen.has(docId)) continue;
+        seen.add(docId);
+
+        const docName = doc.name || doc.title || '';
+
+        // Only include docs that look like Info Docs
+        if (!/(info|client info)/i.test(docName)) continue;
+
+        // Skip templates and non-client docs
+        if (/template/i.test(docName)) continue;
+        if (/definitions/i.test(docName)) continue;
+        if (/^sprint\s+\d/i.test(docName)) continue;
+
+        // Extract client name from doc title
+        const name = docName
+          .replace(/\s*(client\s+)?info(\s+doc)?$/i, '')
+          .trim();
+
+        if (name) {
+          results.push({ name, docId, docName });
+        }
+      }
+
+      results.sort((a, b) => a.name.localeCompare(b.name));
+      console.log(`[listInfoDocs] Returning ${results.length} clients:`, results.map(r => r.name).join(', '));
+      return results;
+    } catch (err) {
+      console.error(`[listInfoDocs] ${approach.name} error:`, err.message);
     }
-  } catch (err) {
-    console.error(`[listInfoDocs] Error:`, err.message);
   }
 
-  // Sort alphabetically
-  results.sort((a, b) => a.name.localeCompare(b.name));
-  console.log(`[listInfoDocs] Returning ${results.length} clients:`, results.map(r => r.name).join(', '));
-  return results;
+  console.error('[listInfoDocs] All approaches failed');
+  return [];
 }
 
 module.exports = {
