@@ -63,7 +63,7 @@ function buildClientSuggestions(query, infoDocs) {
 
   for (const doc of filtered.slice(0, 90)) {
     options.push({
-      text: { type: 'plain_text', text: doc.name },
+      text: { type: 'plain_text', text: doc.docName },
       value: `${doc.docId}::${doc.name}`,
     });
   }
@@ -73,13 +73,6 @@ function buildClientSuggestions(query, infoDocs) {
     options.push({
       text: { type: 'plain_text', text: `➕ Add new client: ${displayName}` },
       value: `${NEW_CLIENT_PREFIX}${query}`,
-    });
-  }
-
-  if (!query && infoDocs.length > 0) {
-    options.push({
-      text: { type: 'plain_text', text: '➕ Type a name to add a new client...' },
-      value: '__new_hint__',
     });
   }
 
