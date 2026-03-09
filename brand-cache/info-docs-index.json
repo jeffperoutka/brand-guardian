@@ -11,6 +11,14 @@
       "docName": "Enter Health Client Info Doc"
     },
     {
+      "name": "Example Test Delete",
+      "docId": "1PNbD2beDvIol30NkunBCxYFzYDp5cbTkN9j99rVKk9c",
+      "docName": "Example Test Delete Client Info Doc",
+      "docUrl": "https://docs.google.com/document/d/1PNbD2beDvIol30NkunBCxYFzYDp5cbTkN9j99rVKk9c/edit",
+      "folderId": "1j2p-0thhh8lBKqg35xBj4CA_Hb0GmUYL",
+      "source": "google-drive"
+    },
+    {
       "name": "Incorp",
       "docId": "2kzmf2v4-4678",
       "docName": "Incorp Client Info Doc"
@@ -67,6 +75,6 @@
       "docName": "Uncle Jims Worm Farm Client Info Docs"
     }
   ],
-  "updatedAt": "2026-03-09T21:17:22.370Z",
-  "count": 12
+  "updatedAt": "2026-03-09T21:20:54.742Z",
+  "count": 13
 }
