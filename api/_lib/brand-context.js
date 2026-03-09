@@ -578,9 +578,22 @@ async function getOrBuildBrandProfile(clientName, websiteUrl, progressCallback, 
 
   if (docInfo) {
     if (progressCallback) await progressCallback(`Found "${docInfo.docName}". Reading...`);
-    const docData = await readDocContent(docInfo.docId);
+    let docData = await readDocContent(docInfo.docId);
     fullContent = docData.content || '';
     mainPageId = docData.mainPageId;
+
+    // If reading failed (wrong ID format), try search API to get correct ID
+    if (!fullContent && clientName) {
+      console.log(`[getOrBuildBrandProfile] readDocContent returned empty for docId=${docInfo.docId}, trying search API fallback`);
+      const searchDoc = await findClientInfoDoc(clientName);
+      if (searchDoc && searchDoc.docId !== docInfo.docId) {
+        console.log(`[getOrBuildBrandProfile] Search found different docId: ${searchDoc.docId} (was: ${docInfo.docId})`);
+        docInfo = searchDoc;
+        docData = await readDocContent(searchDoc.docId);
+        fullContent = docData.content || '';
+        mainPageId = docData.mainPageId;
+      }
+    }
 
     // If existing research and NOT force refresh, parse and return
     if (fullContent && hasExistingResearch(fullContent) && !forceRefresh) {
@@ -667,20 +680,21 @@ async function listInfoDocs() {
 
   const headers = { 'Authorization': token, 'Content-Type': 'application/json' };
 
-  // Search API first — confirmed to return correct doc IDs that work with pages endpoint
+  // docs-list first — works with personal API tokens for populating dropdown
+  // search API as fallback (may require OAuth)
   const approaches = [
+    {
+      name: 'v3-docs-list',
+      url: `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs`,
+      method: 'GET',
+      extractDocs: (data) => data.docs || data.results || data.data || [],
+    },
     {
       name: 'v3-search',
       url: `https://api.clickup.com/api/v3/workspaces/${workspaceId}/search`,
       method: 'POST',
       body: JSON.stringify({ query: 'Client Info Doc', types: ['doc'], limit: 50 }),
       extractDocs: (data) => data.results || [],
-    },
-    {
-      name: 'v3-docs-list',
-      url: `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs`,
-      method: 'GET',
-      extractDocs: (data) => data.docs || data.results || data.data || [],
     },
   ];
 
