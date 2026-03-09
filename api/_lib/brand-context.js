@@ -661,19 +661,50 @@ async function getOrBuildBrandProfile(clientName, websiteUrl, progressCallback, 
 
   // Append research to the existing doc page
   let savedToDoc = false;
-  if (docInfo && mainPageId) {
-    console.log(`[getOrBuildBrandProfile] Saving research to ClickUp doc ${docInfo.docId}, page ${mainPageId}`);
+  if (docInfo) {
     if (progressCallback) await progressCallback('Saving research to Client Info Doc...');
-    const appendResult = await appendResearchToDoc(docInfo.docId, mainPageId, clientName, research);
-    savedToDoc = !!appendResult;
+
+    if (mainPageId) {
+      // Best case: append to existing main page
+      console.log(`[getOrBuildBrandProfile] Saving research to ClickUp doc ${docInfo.docId}, page ${mainPageId}`);
+      const appendResult = await appendResearchToDoc(docInfo.docId, mainPageId, clientName, research);
+      savedToDoc = !!appendResult;
+    }
+
+    if (!savedToDoc) {
+      // Fallback: try to get page list (lighter call) then append, or create new page
+      console.log(`[getOrBuildBrandProfile] mainPageId missing or append failed, trying to fetch pages for doc ${docInfo.docId}`);
+      try {
+        const wsId = (process.env.CLICKUP_WORKSPACE_ID || '').trim();
+        const tk = (process.env.CLICKUP_API_TOKEN || '').trim();
+        const pResp = await fetch(
+          `https://api.clickup.com/api/v3/workspaces/${wsId}/docs/${docInfo.docId}/pages`,
+          { headers: { 'Authorization': tk } }
+        );
+        if (pResp.ok) {
+          const pData = await pResp.json();
+          if (pData.pages?.length) {
+            const pageId = pData.pages[0].id;
+            console.log(`[getOrBuildBrandProfile] Got page ${pageId}, attempting append`);
+            const appendResult = await appendResearchToDoc(docInfo.docId, pageId, clientName, research);
+            savedToDoc = !!appendResult;
+          }
+        } else {
+          console.error(`[getOrBuildBrandProfile] Pages fetch failed: HTTP ${pResp.status}`);
+        }
+      } catch (err) {
+        console.error(`[getOrBuildBrandProfile] Pages fetch error:`, err.message);
+      }
+    }
+
     if (savedToDoc) {
       console.log(`[getOrBuildBrandProfile] Successfully saved research to ClickUp`);
     } else {
-      console.error(`[getOrBuildBrandProfile] Failed to append research to doc ${docInfo.docId}`);
+      console.error(`[getOrBuildBrandProfile] Failed to save research to ClickUp doc ${docInfo.docId}`);
       if (progressCallback) await progressCallback('⚠️ Research complete but failed to save to ClickUp. Caching in GitHub...');
     }
   } else {
-    console.log(`[getOrBuildBrandProfile] No ClickUp doc to save to (docInfo: ${!!docInfo}, mainPageId: ${mainPageId})`);
+    console.log(`[getOrBuildBrandProfile] No ClickUp doc to save to`);
   }
 
   // Cache in GitHub
