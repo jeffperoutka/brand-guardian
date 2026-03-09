@@ -22,13 +22,18 @@ module.exports = async function handler(req, res) {
 
   try {
     const body = req.body;
-    console.log('[typeform-webhook] Received payload type:', body?.form_response ? 'typeform-direct' : body?.client_name ? 'zapier-formatted' : 'unknown');
+    console.log('[typeform-webhook] Received payload type:', body?.form_response ? 'typeform-direct' : (body?.client_name || body?.website_url) ? 'zapier-formatted' : 'unknown');
 
     // Parse the submission — supports both direct Typeform webhook and Zapier-formatted payload
     const submission = parseSubmission(body);
 
+    // If no client name but we have a website URL, extract brand name from domain
+    if (!submission.clientName && submission.websiteUrl) {
+      submission.clientName = await extractBrandNameFromUrl(submission.websiteUrl);
+    }
+
     if (!submission.clientName) {
-      return res.status(400).json({ error: 'Missing client name in submission' });
+      return res.status(400).json({ error: 'Missing client name and website URL in submission' });
     }
 
     console.log(`[typeform-webhook] Client: ${submission.clientName}, Website: ${submission.websiteUrl || 'none'}`);
@@ -55,9 +60,9 @@ module.exports = async function handler(req, res) {
  */
 function parseSubmission(body) {
   // Zapier-formatted (flat object)
-  if (body.client_name) {
+  if (body.client_name || body.website_url) {
     return {
-      clientName: body.client_name.trim(),
+      clientName: (body.client_name || '').trim(),
       websiteUrl: (body.website_url || body.website || '').trim(),
       competitors: (body.competitors || '').trim(),
       formAnswers: body.answers || body, // pass through all fields
@@ -138,6 +143,46 @@ function extractAnswerValue(answer) {
     case 'file_url': return answer.file_url || '';
     default: return JSON.stringify(answer) || '';
   }
+}
+
+/**
+ * Extract a brand name from a URL using Claude for accurate word splitting.
+ * Falls back to simple heuristic if Claude call fails.
+ * e.g., "https://kobopickleball.co" → "Kobo Pickleball"
+ * e.g., "https://luxunfiltered.com" → "Lux Unfiltered"
+ */
+async function extractBrandNameFromUrl(url) {
+  // Quick domain extraction for the Claude prompt and fallback
+  let domain;
+  try {
+    if (!url.startsWith('http')) url = `https://${url}`;
+    let hostname = new URL(url).hostname.replace(/^www\./, '');
+    domain = hostname.split('.')[0];
+  } catch {
+    domain = url.replace(/https?:\/\/(www\.)?/, '').replace(/\.[a-z]+.*$/, '');
+  }
+
+  // Ask Claude to extract the brand name (fast, cheap call)
+  try {
+    const { askClaude } = require('./_lib/connectors/claude');
+    const result = await askClaude(
+      'Extract the brand/company name from this domain. Return ONLY the properly capitalized brand name, nothing else. Split concatenated words correctly. Examples: "kobopickleball" → "Kobo Pickleball", "luxunfiltered" → "Lux Unfiltered", "unclejimswormfarm" → "Uncle Jims Worm Farm", "enterhealth" → "Enter Health".',
+      `Domain: ${domain}`,
+      { maxTokens: 50, timeout: 10000 }
+    );
+    const name = result.trim().replace(/['"]/g, '');
+    if (name && name.length > 0 && name.length < 100) {
+      console.log(`[extractBrandName] Claude: "${domain}" → "${name}"`);
+      return name;
+    }
+  } catch (err) {
+    console.error('[extractBrandName] Claude fallback failed:', err.message);
+  }
+
+  // Simple fallback: hyphens to spaces, title case
+  const name = domain.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  console.log(`[extractBrandName] Fallback: "${domain}" → "${name}"`);
+  return name;
 }
 
 /**
