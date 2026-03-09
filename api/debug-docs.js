@@ -2,42 +2,48 @@ module.exports = async function handler(req, res) {
   const workspaceId = (process.env.CLICKUP_WORKSPACE_ID || '').trim();
   const token = (process.env.CLICKUP_API_TOKEN || '').trim();
 
-  const results = {};
+  // Paginate through all docs to find Info Docs
+  let allDocs = [];
+  let nextCursor = undefined;
+  let pages = 0;
 
-  // Test 1: v3 docs list (what listInfoDocs uses)
-  try {
-    const resp = await fetch(`https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs`, {
-      method: 'GET',
+  while (pages < 10) {
+    const url = nextCursor
+      ? `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs?cursor=${nextCursor}`
+      : `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs`;
+
+    const resp = await fetch(url, {
       headers: { 'Authorization': token, 'Content-Type': 'application/json' },
     });
-    const body = await resp.text();
-    results.v3DocsList = {
-      status: resp.status,
-      bodyPreview: body.slice(0, 2000),
-    };
-  } catch (err) {
-    results.v3DocsList = { error: err.message };
+
+    if (!resp.ok) {
+      return res.status(200).json({ error: `HTTP ${resp.status}`, page: pages });
+    }
+
+    const data = await resp.json();
+    const docs = data.docs || [];
+    allDocs.push(...docs);
+    pages++;
+
+    // Check for next page
+    if (data.next_cursor) {
+      nextCursor = data.next_cursor;
+    } else {
+      break;
+    }
   }
 
-  // Test 2: v3 search
-  try {
-    const resp = await fetch(`https://api.clickup.com/api/v3/workspaces/${workspaceId}/search`, {
-      method: 'POST',
-      headers: { 'Authorization': token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: 'Client Info Doc', types: ['doc'], limit: 5 }),
-    });
-    const body = await resp.text();
-    results.v3Search = {
-      status: resp.status,
-      bodyPreview: body.slice(0, 2000),
-    };
-  } catch (err) {
-    results.v3Search = { error: err.message };
-  }
+  // Filter for Info Docs
+  const infoDocs = allDocs.filter(d => {
+    const name = (d.name || '').toLowerCase();
+    return /(info|client info)/i.test(name) && !/template/i.test(name) && !/definitions/i.test(name) && !/^sprint/i.test(name);
+  });
 
   return res.status(200).json({
-    workspaceId: workspaceId ? `${workspaceId.slice(0, 4)}...` : 'MISSING',
-    tokenPresent: !!token,
-    results,
+    totalDocs: allDocs.length,
+    pages,
+    infoDocs: infoDocs.map(d => ({ id: d.id, name: d.name })),
+    firstDocName: allDocs[0]?.name,
+    lastDocName: allDocs[allDocs.length - 1]?.name,
   });
 };
