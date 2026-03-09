@@ -1,23 +1,21 @@
 /**
- * Brand Context Manager — Enrichment Edition
+ * Brand Context Manager — Enrichment Edition (Google Docs)
  *
- * ONE LIVING DOC — all research appends to the existing Client Info Doc page.
+ * ONE LIVING DOC — all research appends to the existing Client Info Doc in Google Docs.
  * No separate pages. The doc grows over time as a master brand reference.
  *
  * Flow:
- * 1. Find the Client Info Doc in ClickUp
+ * 1. Find the Client Info Doc in Google Drive
  * 2. Read its content — check if Brand Guardian research section already exists
  * 3. If research exists AND not forceRefresh — parse it into a structured profile, done
  * 4. If no research OR forceRefresh — run deep research (website crawl + doc analysis)
- *    — APPEND findings to the same page (below existing content)
+ *    — APPEND findings to the same doc (below existing content)
  * 5. Return structured brand profile
- *
- * The enrichment skill always runs with forceRefresh=true to ensure
- * the latest research is compiled on every trigger.
  */
 
 const { askClaudeLong } = require('./connectors/claude');
 const github = require('./connectors/github');
+const gdrive = require('./connectors/gdrive');
 
 const MAX_DOC_CHARS = 30000;
 
@@ -37,248 +35,144 @@ function extractJSON(text) {
 }
 
 const BRAND_CACHE_PREFIX = 'brand-cache';
-const RESEARCH_SECTION_MARKER = '---\n\n## 🛡️ Brand Guardian Research';
-const RESEARCH_MARKER_CHECK = '## 🛡️ Brand Guardian Research';
+const RESEARCH_MARKER_CHECK = 'BRAND GUARDIAN RESEARCH';
 
-// ── CLICKUP API HELPERS ──
+// ── GOOGLE DOCS HELPERS ──
 
+/**
+ * Find a Client Info Doc by checking:
+ * 1. GitHub-cached index (fast)
+ * 2. Google Drive search (fallback)
+ */
 async function findClientInfoDoc(clientName) {
-  const workspaceId = (process.env.CLICKUP_WORKSPACE_ID || '').trim();
-  const token = (process.env.CLICKUP_API_TOKEN || '').trim();
-
-  if (!workspaceId || !token) {
-    console.error('[findClientInfoDoc] Missing CLICKUP_WORKSPACE_ID or CLICKUP_API_TOKEN');
-    return null;
-  }
-
   const clientLower = clientName.toLowerCase().trim();
   console.log(`[findClientInfoDoc] Looking for Info Doc for client: "${clientName}"`);
 
-  function namesMatch(docNameLower, searchLower) {
-    if (docNameLower.includes(searchLower)) return true;
-    const docNoSpaces = docNameLower.replace(/\s+/g, '');
-    const searchNoSpaces = searchLower.replace(/\s+/g, '');
-    if (docNoSpaces.includes(searchNoSpaces)) return true;
-    if (searchNoSpaces.includes(docNoSpaces)) return true;
-    return false;
-  }
-
+  // 1. Check GitHub index first
   try {
-    // Paginate through all docs (same approach as listInfoDocs)
-    const headers = { 'Authorization': token, 'Content-Type': 'application/json' };
-    let nextCursor = undefined;
-    let pages = 0;
-
-    while (pages < 15) {
-      const url = nextCursor
-        ? `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs?cursor=${nextCursor}`
-        : `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs`;
-
-      const resp = await fetch(url, { headers });
-      if (!resp.ok) {
-        console.error(`[findClientInfoDoc] HTTP ${resp.status} on page ${pages}`);
-        break;
-      }
-
-      const data = await resp.json();
-      const docs = data.docs || [];
-      pages++;
-
-      // Check each doc on this page for a match
-      for (const doc of docs) {
-        const docId = doc.id || doc.doc_id;
-        const docName = (doc.name || '').toLowerCase();
-        if (!/(info|client info)/i.test(docName)) continue;
-        if (/template/i.test(docName) || /definitions/i.test(docName)) continue;
-
-        if (namesMatch(docName, clientLower)) {
-          console.log(`[findClientInfoDoc] Match: "${doc.name}" (ID: ${docId})`);
-          return { docId, docName: doc.name };
-        }
-
-        const extractedName = docName.replace(/\s*(client\s+)?info(\s+doc)?s?$/i, '').trim();
-        if (namesMatch(extractedName, clientLower)) {
-          console.log(`[findClientInfoDoc] Partial match: "${doc.name}" (ID: ${docId})`);
-          return { docId, docName: doc.name };
-        }
-      }
-
-      if (data.next_cursor) {
-        nextCursor = data.next_cursor;
-      } else {
-        break;
-      }
-    }
-
-    console.log(`[findClientInfoDoc] No Info Doc found for "${clientName}" after ${pages} pages`);
-    return null;
-  } catch (err) {
-    console.error(`[findClientInfoDoc] Error:`, err.message);
-    return null;
-  }
-}
-
-async function readDocContent(docId) {
-  const workspaceId = (process.env.CLICKUP_WORKSPACE_ID || '').trim();
-  const token = (process.env.CLICKUP_API_TOKEN || '').trim();
-  console.log(`[readDocContent] Reading doc ${docId} in workspace ${workspaceId}`);
-
-  // Retry once on failure (handles transient 401s / rate limits)
-  let pagesResp;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    pagesResp = await fetch(
-      `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs/${docId}/pages`,
-      { headers: { 'Authorization': token } }
-    );
-    if (pagesResp.ok) break;
-    if (attempt === 0) {
-      console.log(`[readDocContent] Attempt 1 failed (HTTP ${pagesResp.status}), retrying in 2s...`);
-      await new Promise(r => setTimeout(r, 2000));
-    }
-  }
-
-  if (!pagesResp.ok) {
-    const errText = await pagesResp.text().catch(() => '');
-    console.error(`[readDocContent] ClickUp pages HTTP ${pagesResp.status}: ${errText.slice(0, 300)}`);
-    return { content: '', pageId: null, pages: [], error: `ClickUp API returned HTTP ${pagesResp.status}` };
-  }
-
-  const pagesData = await pagesResp.json();
-  if (!pagesData.pages?.length) return { content: '', pageId: null, pages: [] };
-
-  const mainPage = pagesData.pages[0];
-  let mainContent = '';
-  let allContent = '';
-
-  for (const page of pagesData.pages.slice(0, 15)) {
-    try {
-      const pageResp = await fetch(
-        `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs/${docId}/pages/${page.id}?content_format=text/md`,
-        { headers: { 'Authorization': token } }
-      );
-      if (!pageResp.ok) continue;
-      const pageData = await pageResp.json();
-      const content = pageData.content || '';
-      if (page.id === mainPage.id) mainContent = content;
-      allContent += `\n\n${content}`;
-    } catch (err) {
-      console.error(`Error reading page ${page.id}:`, err.message);
-    }
-  }
-
-  return {
-    content: allContent.trim(),
-    mainContent: mainContent.trim(),
-    mainPageId: mainPage.id,
-    pages: pagesData.pages,
-  };
-}
-
-async function appendResearchToDoc(docId, pageId, clientName, research) {
-  const workspaceId = (process.env.CLICKUP_WORKSPACE_ID || '').trim();
-
-  const researchMarkdown = `
-
-${RESEARCH_SECTION_MARKER}
-
-*Auto-generated on ${new Date().toISOString().split('T')[0]} — updated by Brand Guardian*
-*This section is used for brand alignment checks, content creation, and brand-consistent output.*
-
----
-
-### Brand Overview
-${research.brandOverview || ''}
-
-### Target Audience
-**Primary:** ${research.targetAudience?.primary || 'Unknown'}
-**Secondary:** ${research.targetAudience?.secondary || 'N/A'}
-**Demographics:** ${research.targetAudience?.demographics || 'Unknown'}
-**Psychographics:** ${research.targetAudience?.psychographics || 'Unknown'}
-
-### Brand Voice & Tone
-**Tone:** ${research.brandVoice?.tone || 'Unknown'}
-**Personality:** ${research.brandVoice?.personality || 'Unknown'}
-**Do Not Say:** ${(research.brandVoice?.doNotSay || []).join(', ') || 'None specified'}
-**Preferred Terms:** ${(research.brandVoice?.preferredTerms || []).join(', ') || 'None specified'}
-
-### Products & Services
-${(research.coreOfferings?.products || []).map(p => `- ${p}`).join('\n') || 'Not specified'}
-
-**Value Proposition:** ${research.coreOfferings?.valueProposition || 'Unknown'}
-**Key Benefits:** ${(research.coreOfferings?.keyBenefits || []).join(', ') || 'Unknown'}
-**Pricing Tier:** ${research.coreOfferings?.pricingTier || 'Unknown'}
-
-### Competitive Landscape
-${(research.competitors || []).map(c => {
-    if (typeof c === 'string') return `- ${c}`;
-    return `- **${c.name}:** ${c.differentiator || ''}`;
-  }).join('\n') || 'No competitors identified'}
-
-**Key Differentiators:** ${research.competitiveDifferentiators || 'Not specified'}
-
-### Content Themes
-**On-Brand Topics:** ${(research.contentThemes?.onBrandTopics || []).join(', ') || 'Unknown'}
-**Adjacent Topics (guest posts):** ${(research.contentThemes?.adjacentTopics || []).join(', ') || 'Unknown'}
-**Off-Limit Topics:** ${(research.contentThemes?.offLimitTopics || []).join(', ') || 'None specified'}
-
-### Key Messages
-${(research.keyMessages || []).map(m => `- ${m}`).join('\n') || 'Not specified'}
-
-### Website Insights
-**Content Style:** ${research.websiteInsights?.contentStyle || 'Unknown'}
-**CTA Patterns:** ${research.websiteInsights?.ctaPatterns || 'Unknown'}
-**Social Proof:** ${research.websiteInsights?.socialProof || 'Unknown'}
-**Pages Analyzed:** ${(research.websiteInsights?.mainPages || []).join(', ') || 'Unknown'}
-
-### Industry Context
-${research.industryContext || 'Not available'}`;
-
-  const token = (process.env.CLICKUP_API_TOKEN || '').trim();
-  console.log(`[appendResearchToDoc] Appending to doc ${docId}, page ${pageId}`);
-
-  try {
-    const url = `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs/${docId}/pages/${pageId}`;
-
-    const resp = await fetch(url, {
-      method: 'PUT',
-      headers: { 'Authorization': token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        content: researchMarkdown,
-        content_format: 'text/md',
-        content_edit_mode: 'append',
-      }),
-    });
-
-    const respText = await resp.text();
-    console.log(`[appendResearchToDoc] Response ${resp.status}: ${respText.slice(0, 300)}`);
-
-    if (!resp.ok) {
-      console.log('[appendResearchToDoc] Trying fallback: create new page...');
-      const newPageUrl = `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs/${docId}/pages`;
-      const newPageResp = await fetch(newPageUrl, {
-        method: 'POST',
-        headers: { 'Authorization': token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: `🛡️ Brand Guardian Research — ${clientName}`,
-          content: researchMarkdown,
-          content_format: 'text/md',
-        }),
+    const cached = await github.readFile(`${BRAND_CACHE_PREFIX}/info-docs-index.json`);
+    if (cached?.docs) {
+      const match = cached.docs.find(d => {
+        const nameLower = d.name.toLowerCase();
+        return nameLower === clientLower || nameLower.includes(clientLower) || clientLower.includes(nameLower);
       });
-
-      const newPageText = await newPageResp.text();
-      console.log(`[appendResearchToDoc] New page response ${newPageResp.status}: ${newPageText.slice(0, 300)}`);
-
-      if (newPageResp.ok) {
-        try { return JSON.parse(newPageText); } catch { return { ok: true }; }
+      if (match) {
+        console.log(`[findClientInfoDoc] Found in index: "${match.docName}" (ID: ${match.docId})`);
+        return { docId: match.docId, docName: match.docName, docUrl: match.docUrl, folderId: match.folderId, source: match.source || 'index' };
       }
-      return null;
     }
+  } catch (err) {
+    console.error('[findClientInfoDoc] Index lookup failed:', err.message);
+  }
 
-    try { return JSON.parse(respText); } catch { return { ok: true }; }
+  // 2. Search Google Drive
+  try {
+    const doc = await gdrive.findDoc(`${clientName} Client Info`, null);
+    if (doc) {
+      console.log(`[findClientInfoDoc] Found in Google Drive: "${doc.docName}" (ID: ${doc.docId})`);
+      return { docId: doc.docId, docName: doc.docName, docUrl: doc.docUrl, source: 'google-drive' };
+    }
+  } catch (err) {
+    console.error('[findClientInfoDoc] Google Drive search failed:', err.message);
+  }
+
+  console.log(`[findClientInfoDoc] No Info Doc found for "${clientName}"`);
+  return null;
+}
+
+/**
+ * Read the content of a Google Doc.
+ * Returns { content, docId } or { content: '', error: '...' }
+ */
+async function readDocContent(docId) {
+  console.log(`[readDocContent] Reading Google Doc ${docId}`);
+
+  try {
+    const content = await gdrive.readDoc(docId);
+    return { content: content || '', docId };
+  } catch (err) {
+    console.error(`[readDocContent] Google Docs API error:`, err.message);
+    return { content: '', docId, error: err.message };
+  }
+}
+
+/**
+ * Append brand research to a Google Doc.
+ */
+async function appendResearchToDoc(docId, clientName, research) {
+  console.log(`[appendResearchToDoc] Appending to Google Doc ${docId}`);
+
+  const researchText = formatResearchText(clientName, research);
+
+  try {
+    await gdrive.appendToDoc(docId, researchText);
+    console.log(`[appendResearchToDoc] Success`);
+    return { ok: true };
   } catch (err) {
     console.error('[appendResearchToDoc] error:', err.message);
     return null;
   }
+}
+
+/**
+ * Format research as plain text for Google Docs.
+ */
+function formatResearchText(clientName, research) {
+  const date = new Date().toISOString().split('T')[0];
+  let text = '';
+
+  text += '\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+  text += '🛡️ BRAND GUARDIAN RESEARCH\n\n';
+  text += `Auto-generated on ${date} — updated by Brand Guardian\n`;
+  text += 'This section is used for brand alignment checks, content creation, and brand-consistent output.\n\n';
+  text += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
+
+  text += 'BRAND OVERVIEW\n';
+  text += `${research.brandOverview || 'N/A'}\n\n`;
+
+  text += 'TARGET AUDIENCE\n';
+  text += `Primary: ${research.targetAudience?.primary || 'Unknown'}\n`;
+  text += `Secondary: ${research.targetAudience?.secondary || 'N/A'}\n`;
+  text += `Demographics: ${research.targetAudience?.demographics || 'Unknown'}\n`;
+  text += `Psychographics: ${research.targetAudience?.psychographics || 'Unknown'}\n\n`;
+
+  text += 'BRAND VOICE & TONE\n';
+  text += `Tone: ${research.brandVoice?.tone || 'Unknown'}\n`;
+  text += `Personality: ${research.brandVoice?.personality || 'Unknown'}\n`;
+  text += `Do Not Say: ${(research.brandVoice?.doNotSay || []).join(', ') || 'None specified'}\n`;
+  text += `Preferred Terms: ${(research.brandVoice?.preferredTerms || []).join(', ') || 'None specified'}\n\n`;
+
+  text += 'PRODUCTS & SERVICES\n';
+  text += `${(research.coreOfferings?.products || []).map(p => `• ${p}`).join('\n') || 'Not specified'}\n\n`;
+  text += `Value Proposition: ${research.coreOfferings?.valueProposition || 'Unknown'}\n`;
+  text += `Key Benefits: ${(research.coreOfferings?.keyBenefits || []).join(', ') || 'Unknown'}\n`;
+  text += `Pricing Tier: ${research.coreOfferings?.pricingTier || 'Unknown'}\n\n`;
+
+  text += 'COMPETITIVE LANDSCAPE\n';
+  text += `${(research.competitors || []).map(c => {
+    if (typeof c === 'string') return `• ${c}`;
+    return `• ${c.name}: ${c.differentiator || ''}`;
+  }).join('\n') || 'No competitors identified'}\n\n`;
+  text += `Key Differentiators: ${research.competitiveDifferentiators || 'Not specified'}\n\n`;
+
+  text += 'CONTENT THEMES\n';
+  text += `On-Brand Topics: ${(research.contentThemes?.onBrandTopics || []).join(', ') || 'Unknown'}\n`;
+  text += `Adjacent Topics (guest posts): ${(research.contentThemes?.adjacentTopics || []).join(', ') || 'Unknown'}\n`;
+  text += `Off-Limit Topics: ${(research.contentThemes?.offLimitTopics || []).join(', ') || 'None specified'}\n\n`;
+
+  text += 'KEY MESSAGES\n';
+  text += `${(research.keyMessages || []).map(m => `• ${m}`).join('\n') || 'Not specified'}\n\n`;
+
+  text += 'WEBSITE INSIGHTS\n';
+  text += `Content Style: ${research.websiteInsights?.contentStyle || 'Unknown'}\n`;
+  text += `CTA Patterns: ${research.websiteInsights?.ctaPatterns || 'Unknown'}\n`;
+  text += `Social Proof: ${research.websiteInsights?.socialProof || 'Unknown'}\n`;
+  text += `Pages Analyzed: ${(research.websiteInsights?.mainPages || []).join(', ') || 'Unknown'}\n\n`;
+
+  text += 'INDUSTRY CONTEXT\n';
+  text += `${research.industryContext || 'Not available'}\n`;
+
+  return text;
 }
 
 // ── WEBSITE CRAWLING ──
@@ -562,6 +456,7 @@ Prioritize the MOST RECENT information if there are conflicts.`,
  * Options:
  * - forceRefresh: true — always re-run research (used by enrichment skill)
  * - enrichmentNotes: string — focus areas for the research
+ * - docId: string — Google Doc ID (from dropdown selection or Typeform pipeline)
  */
 async function getOrBuildBrandProfile(clientName, websiteUrl, progressCallback, options = {}) {
   const cacheKey = clientName.toLowerCase().replace(/[^a-z0-9]/g, '-');
@@ -579,37 +474,26 @@ async function getOrBuildBrandProfile(clientName, websiteUrl, progressCallback, 
     }
   }
 
-  // Find the Client Info Doc — use provided docId if available (from dropdown selection)
+  // Find the Client Info Doc
   let docInfo = null;
   if (options.docId) {
     if (progressCallback) await progressCallback('Loading Client Info Doc...');
-    docInfo = { docId: options.docId, docName: `${clientName} Info Doc` };
+    docInfo = { docId: options.docId, docName: `${clientName} Client Info Doc` };
     console.log(`[getOrBuildBrandProfile] Using provided docId: ${options.docId} for "${clientName}"`);
   } else {
-    if (progressCallback) await progressCallback('Searching ClickUp for Client Info Doc...');
+    if (progressCallback) await progressCallback('Searching for Client Info Doc...');
     docInfo = await findClientInfoDoc(clientName);
   }
 
   let fullContent = '';
-  let mainPageId = null;
 
   if (docInfo) {
     if (progressCallback) await progressCallback(`Found "${docInfo.docName}". Reading...`);
-    let docData = await readDocContent(docInfo.docId);
+    const docData = await readDocContent(docInfo.docId);
     fullContent = docData.content || '';
-    mainPageId = docData.mainPageId;
 
-    // If reading failed (wrong ID format), try search API to get correct ID
-    if (!fullContent && clientName) {
-      console.log(`[getOrBuildBrandProfile] readDocContent returned empty for docId=${docInfo.docId}, trying search API fallback`);
-      const searchDoc = await findClientInfoDoc(clientName);
-      if (searchDoc && searchDoc.docId !== docInfo.docId) {
-        console.log(`[getOrBuildBrandProfile] Search found different docId: ${searchDoc.docId} (was: ${docInfo.docId})`);
-        docInfo = searchDoc;
-        docData = await readDocContent(searchDoc.docId);
-        fullContent = docData.content || '';
-        mainPageId = docData.mainPageId;
-      }
+    if (docData.error) {
+      console.error(`[getOrBuildBrandProfile] Error reading doc: ${docData.error}`);
     }
 
     // If existing research and NOT force refresh, parse and return
@@ -617,13 +501,13 @@ async function getOrBuildBrandProfile(clientName, websiteUrl, progressCallback, 
       if (progressCallback) await progressCallback('Existing research found. Building profile...');
       const profile = await parseExistingResearch(fullContent, clientName);
       if (profile) {
-        const profileWithMeta = { ...profile, clientName, cachedAt: new Date().toISOString(), cacheKey };
+        const profileWithMeta = { ...profile, clientName, cachedAt: new Date().toISOString(), cacheKey, googleDocId: docInfo.docId };
         await github.writeFile(`${BRAND_CACHE_PREFIX}/${cacheKey}.json`, profileWithMeta, `brand-cache: ${clientName}`);
         return { profile: profileWithMeta, source: 'existing_research', researchNeeded: false };
       }
     }
   } else {
-    console.log(`No ClickUp doc found for "${clientName}" — will attempt website-only research`);
+    console.log(`No Info Doc found for "${clientName}" — will attempt website-only research`);
   }
 
   // Extract website URL from doc if not provided
@@ -633,11 +517,9 @@ async function getOrBuildBrandProfile(clientName, websiteUrl, progressCallback, 
   }
 
   if (!websiteUrl && !fullContent) {
-    const debugInfo = options.docId ? ` (docId=${options.docId}, readDocContent returned empty)` : ' (no docId provided, findClientInfoDoc returned null)';
-    console.error(`[getOrBuildBrandProfile] No content and no URL for "${clientName}"${debugInfo}`);
     const errorDetail = options.docId
-      ? `Found the Info Doc (ID: ${options.docId}) but ClickUp API failed to return its content. This is usually a transient ClickUp API issue — please try again in a minute. Alternatively, provide a website URL to run enrichment without the doc.`
-      : `Could not find a Client Info Doc for "${clientName}" in ClickUp and no website URL was provided.`;
+      ? `Found the Info Doc (ID: ${options.docId}) but could not read its content. Try again or provide a website URL.`
+      : `Could not find a Client Info Doc for "${clientName}" and no website URL was provided.`;
     return { profile: null, source: 'none', error: errorDetail };
   }
 
@@ -647,7 +529,7 @@ async function getOrBuildBrandProfile(clientName, websiteUrl, progressCallback, 
       ? 'Running fresh brand enrichment research...'
       : docInfo
         ? 'No existing research. Running deep brand research...'
-        : `No ClickUp doc found — running brand research from website...`;
+        : 'No Info Doc found — running brand research from website...';
     await progressCallback(label);
   }
 
@@ -659,56 +541,23 @@ async function getOrBuildBrandProfile(clientName, websiteUrl, progressCallback, 
     return { profile: null, source: 'none', error: 'Deep research failed. Check logs.' };
   }
 
-  // Append research to the existing doc page
+  // Append research to the Google Doc
   let savedToDoc = false;
   if (docInfo) {
-    if (progressCallback) await progressCallback('Saving research to Client Info Doc...');
-
-    if (mainPageId) {
-      // Best case: append to existing main page
-      console.log(`[getOrBuildBrandProfile] Saving research to ClickUp doc ${docInfo.docId}, page ${mainPageId}`);
-      const appendResult = await appendResearchToDoc(docInfo.docId, mainPageId, clientName, research);
-      savedToDoc = !!appendResult;
-    }
-
-    if (!savedToDoc) {
-      // Fallback: try to get page list (lighter call) then append, or create new page
-      console.log(`[getOrBuildBrandProfile] mainPageId missing or append failed, trying to fetch pages for doc ${docInfo.docId}`);
-      try {
-        const wsId = (process.env.CLICKUP_WORKSPACE_ID || '').trim();
-        const tk = (process.env.CLICKUP_API_TOKEN || '').trim();
-        const pResp = await fetch(
-          `https://api.clickup.com/api/v3/workspaces/${wsId}/docs/${docInfo.docId}/pages`,
-          { headers: { 'Authorization': tk } }
-        );
-        if (pResp.ok) {
-          const pData = await pResp.json();
-          if (pData.pages?.length) {
-            const pageId = pData.pages[0].id;
-            console.log(`[getOrBuildBrandProfile] Got page ${pageId}, attempting append`);
-            const appendResult = await appendResearchToDoc(docInfo.docId, pageId, clientName, research);
-            savedToDoc = !!appendResult;
-          }
-        } else {
-          console.error(`[getOrBuildBrandProfile] Pages fetch failed: HTTP ${pResp.status}`);
-        }
-      } catch (err) {
-        console.error(`[getOrBuildBrandProfile] Pages fetch error:`, err.message);
-      }
-    }
+    if (progressCallback) await progressCallback('Saving research to Google Doc...');
+    const appendResult = await appendResearchToDoc(docInfo.docId, clientName, research);
+    savedToDoc = !!appendResult;
 
     if (savedToDoc) {
-      console.log(`[getOrBuildBrandProfile] Successfully saved research to ClickUp`);
+      console.log(`[getOrBuildBrandProfile] Successfully saved research to Google Doc`);
     } else {
-      console.error(`[getOrBuildBrandProfile] Failed to save research to ClickUp doc ${docInfo.docId}`);
-      if (progressCallback) await progressCallback('⚠️ Research complete but failed to save to ClickUp. Caching in GitHub...');
+      console.error(`[getOrBuildBrandProfile] Failed to save research to Google Doc ${docInfo.docId}`);
+      if (progressCallback) await progressCallback('⚠️ Research complete but failed to save to Google Doc. Caching in GitHub...');
     }
-  } else {
-    console.log(`[getOrBuildBrandProfile] No ClickUp doc to save to`);
   }
 
   // Cache in GitHub
-  const profileWithMeta = { ...research, clientName, cachedAt: new Date().toISOString(), cacheKey };
+  const profileWithMeta = { ...research, clientName, cachedAt: new Date().toISOString(), cacheKey, googleDocId: docInfo?.docId };
   await github.writeFile(`${BRAND_CACHE_PREFIX}/${cacheKey}.json`, profileWithMeta, `brand-cache: ${clientName}`);
 
   return { profile: profileWithMeta, source: 'new_research', researchNeeded: true, savedToDoc };
@@ -718,9 +567,7 @@ const INFO_DOCS_INDEX_PATH = `${BRAND_CACHE_PREFIX}/info-docs-index.json`;
 const INFO_DOCS_INDEX_TTL = 6 * 60 * 60 * 1000; // 6 hours
 
 /**
- * List all Client Info Docs — GitHub-cached for speed/reliability.
- * The dropdown calls this on every keystroke, so it must be fast.
- * ClickUp pagination (10+ API calls) is only used to refresh the cache.
+ * List all Client Info Docs — GitHub-cached, refreshed from Google Drive.
  */
 async function listInfoDocs() {
   // 1. Try GitHub cache first (single fast API call)
@@ -732,16 +579,16 @@ async function listInfoDocs() {
         console.log(`[listInfoDocs] Serving ${cached.docs.length} docs from GitHub cache (age: ${Math.round(age / 60000)}m)`);
         return cached.docs;
       }
-      console.log(`[listInfoDocs] GitHub cache stale (age: ${Math.round(age / 60000)}m), refreshing from ClickUp`);
+      console.log(`[listInfoDocs] GitHub cache stale (age: ${Math.round(age / 60000)}m), refreshing from Google Drive`);
     }
   } catch (err) {
     console.error('[listInfoDocs] GitHub cache read failed:', err.message);
   }
 
-  // 2. Refresh from ClickUp (paginated)
-  const results = await fetchInfoDocsFromClickUp();
+  // 2. Refresh from Google Drive
+  const results = await fetchInfoDocsFromGoogleDrive();
 
-  // 3. Save to GitHub cache (even if empty, to avoid hammering ClickUp)
+  // 3. Save to GitHub cache
   if (results.length > 0) {
     try {
       await github.writeFile(INFO_DOCS_INDEX_PATH, {
@@ -759,11 +606,10 @@ async function listInfoDocs() {
 }
 
 /**
- * Force-refresh the info docs index from ClickUp and save to GitHub.
- * Called during enrichment runs to keep the cache fresh.
+ * Force-refresh the info docs index from Google Drive and save to GitHub.
  */
 async function refreshInfoDocsIndex() {
-  const results = await fetchInfoDocsFromClickUp();
+  const results = await fetchInfoDocsFromGoogleDrive();
   if (results.length > 0) {
     try {
       await github.writeFile(INFO_DOCS_INDEX_PATH, {
@@ -779,75 +625,15 @@ async function refreshInfoDocsIndex() {
 }
 
 /**
- * Paginate through all ClickUp docs and filter for Info Docs.
+ * List all client docs from Google Drive (Brand Guardian Clients folder).
  */
-async function fetchInfoDocsFromClickUp() {
-  const workspaceId = (process.env.CLICKUP_WORKSPACE_ID || '').trim();
-  const token = (process.env.CLICKUP_API_TOKEN || '').trim();
-
-  if (!workspaceId || !token) {
-    console.error('[fetchInfoDocsFromClickUp] Missing CLICKUP_WORKSPACE_ID or CLICKUP_API_TOKEN');
-    return [];
-  }
-
-  const headers = { 'Authorization': token, 'Content-Type': 'application/json' };
-
+async function fetchInfoDocsFromGoogleDrive() {
   try {
-    let allDocs = [];
-    let nextCursor = undefined;
-    let pages = 0;
-
-    while (pages < 15) {
-      const url = nextCursor
-        ? `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs?cursor=${nextCursor}`
-        : `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs`;
-
-      const resp = await fetch(url, { headers });
-      if (!resp.ok) {
-        const errText = await resp.text().catch(() => '');
-        console.error(`[fetchInfoDocsFromClickUp] HTTP ${resp.status} on page ${pages}: ${errText.slice(0, 200)}`);
-        break;
-      }
-
-      const data = await resp.json();
-      const docs = data.docs || [];
-      allDocs.push(...docs);
-      pages++;
-
-      if (data.next_cursor) {
-        nextCursor = data.next_cursor;
-      } else {
-        break;
-      }
-    }
-
-    console.log(`[fetchInfoDocsFromClickUp] Fetched ${allDocs.length} docs across ${pages} pages`);
-
-    const results = [];
-    const seen = new Set();
-
-    for (const doc of allDocs) {
-      const docId = doc.id || doc.doc_id;
-      if (!docId || seen.has(docId)) continue;
-      seen.add(docId);
-
-      const docName = doc.name || doc.title || '';
-      if (!/(info|client info)/i.test(docName)) continue;
-      if (/template/i.test(docName)) continue;
-      if (/definitions/i.test(docName)) continue;
-      if (/^sprint\s+\d/i.test(docName)) continue;
-
-      const name = docName.replace(/\s*(client\s+)?info(\s+doc)?s?$/i, '').trim();
-      if (name) {
-        results.push({ name, docId, docName });
-      }
-    }
-
-    results.sort((a, b) => a.name.localeCompare(b.name));
-    console.log(`[fetchInfoDocsFromClickUp] Found ${results.length} Info Docs:`, results.map(r => r.name).join(', '));
-    return results;
+    const docs = await gdrive.listClientDocs();
+    console.log(`[fetchInfoDocsFromGoogleDrive] Found ${docs.length} client docs`);
+    return docs;
   } catch (err) {
-    console.error('[fetchInfoDocsFromClickUp] error:', err.message);
+    console.error('[fetchInfoDocsFromGoogleDrive] error:', err.message);
     return [];
   }
 }

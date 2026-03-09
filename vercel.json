@@ -5,6 +5,9 @@
     },
     "api/slack/*.js": {
       "maxDuration": 300
+    },
+    "api/typeform-webhook.js": {
+      "maxDuration": 300
     }
   }
 }

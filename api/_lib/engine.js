@@ -128,7 +128,7 @@ function formatEnrichmentBlocks(profile, clientName) {
   blocks.push({ type: 'divider' });
   blocks.push({
     type: 'context',
-    elements: [{ type: 'mrkdwn', text: '_This brand profile is saved to ClickUp and cached for future use. Reply in this thread to ask questions or request updates._' }],
+    elements: [{ type: 'mrkdwn', text: '_This brand profile is saved to Google Docs and cached for future use. Reply in this thread to ask questions or request updates._' }],
   });
 
   if (blocks.length > 49) blocks.length = 49;

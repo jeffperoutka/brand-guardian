@@ -188,9 +188,9 @@ async function handleEnrichment(payload) {
     // ── Update progress to done ──
     let doneText = '✅ Enrichment complete.';
     if (result.savedToDoc) {
-      doneText = '✅ Enrichment complete — research saved to ClickUp Info Doc.';
+      doneText = '✅ Enrichment complete — research saved to Google Doc.';
     } else if (result.savedToDoc === false) {
-      doneText = '✅ Enrichment complete — ⚠️ could not save to ClickUp Info Doc (cached in GitHub).';
+      doneText = '✅ Enrichment complete — ⚠️ could not save to Google Doc (cached in GitHub).';
     }
     await slack.updateMessage(channel, progressTs, doneText);
 
