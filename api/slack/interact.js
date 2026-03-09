@@ -1,6 +1,6 @@
 const { waitUntil } = require('@vercel/functions');
 const { slack } = require('../_lib/connectors');
-const { getOrBuildBrandProfile, listInfoDocs } = require('../_lib/brand-context');
+const { listInfoDocs } = require('../_lib/brand-context');
 const { runEnrichment, formatEnrichmentBlocks } = require('../_lib/engine');
 
 const NEW_CLIENT_PREFIX = '__new__:';
@@ -64,7 +64,7 @@ function buildClientSuggestions(query, infoDocs) {
   for (const doc of filtered.slice(0, 90)) {
     options.push({
       text: { type: 'plain_text', text: doc.name },
-      value: doc.name.toLowerCase().replace(/\s/g, '-'),
+      value: `${doc.docId}::${doc.name}`,
     });
   }
 
@@ -107,6 +107,7 @@ async function handleEnrichment(payload) {
   // ── Parse form values ──
   let clientName = '';
   let websiteUrl = '';
+  let docId = null;
 
   const selectedOption = values?.client_block?.client_select?.selected_option;
   if (selectedOption) {
@@ -115,6 +116,11 @@ async function handleEnrichment(payload) {
       clientName = val.slice(NEW_CLIENT_PREFIX.length).replace(/-/g, ' ');
     } else if (val === '__new_hint__' || val === '__empty__') {
       clientName = '';
+    } else if (val.includes('::')) {
+      // Format: "docId::ExactClientName" — from known Info Docs
+      const sepIdx = val.indexOf('::');
+      docId = val.substring(0, sepIdx);
+      clientName = val.substring(sepIdx + 2);
     } else {
       clientName = val.replace(/-/g, ' ');
     }
@@ -173,7 +179,7 @@ async function handleEnrichment(payload) {
     };
 
     // ── Run enrichment (deep research + profile building) ──
-    const result = await runEnrichment(clientName, websiteUrl, notes, updateProgress);
+    const result = await runEnrichment(clientName, websiteUrl, notes, updateProgress, { docId });
 
     if (!result.profile) {
       await slack.updateMessage(channel, progressTs,

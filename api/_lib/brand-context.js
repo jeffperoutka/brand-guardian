@@ -561,9 +561,16 @@ async function getOrBuildBrandProfile(clientName, websiteUrl, progressCallback, 
     }
   }
 
-  // Find the Client Info Doc
-  if (progressCallback) await progressCallback('Searching ClickUp for Client Info Doc...');
-  const docInfo = await findClientInfoDoc(clientName);
+  // Find the Client Info Doc — use provided docId if available (from dropdown selection)
+  let docInfo = null;
+  if (options.docId) {
+    if (progressCallback) await progressCallback('Loading Client Info Doc...');
+    docInfo = { docId: options.docId, docName: `${clientName} Info Doc` };
+    console.log(`[getOrBuildBrandProfile] Using provided docId: ${options.docId} for "${clientName}"`);
+  } else {
+    if (progressCallback) await progressCallback('Searching ClickUp for Client Info Doc...');
+    docInfo = await findClientInfoDoc(clientName);
+  }
 
   let fullContent = '';
   let mainPageId = null;

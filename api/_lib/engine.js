@@ -16,10 +16,11 @@ const { getOrBuildBrandProfile } = require('./brand-context');
  * Run full brand enrichment for a client.
  * Orchestrates: ClickUp doc lookup → website crawl → Claude research → save.
  */
-async function runEnrichment(clientName, websiteUrl, notes, progressCallback) {
+async function runEnrichment(clientName, websiteUrl, notes, progressCallback, options = {}) {
   return getOrBuildBrandProfile(clientName, websiteUrl, progressCallback, {
     forceRefresh: true,
     enrichmentNotes: notes,
+    docId: options.docId || null,
   });
 }
 
