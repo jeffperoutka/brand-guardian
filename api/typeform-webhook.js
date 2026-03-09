@@ -268,12 +268,21 @@ function formatFormAnswers(clientName, formAnswers, websiteUrl, competitors) {
       text += `A: ${qa.answer || '(no answer)'}\n\n`;
     }
   } else if (typeof formAnswers === 'object') {
-    // Zapier flat object — skip internal fields
+    // Zapier flat object — skip internal/duplicate fields
     const skip = new Set(['client_name', 'website_url', 'website', 'competitors', 'raw']);
+    let hasAnswers = false;
     for (const [key, value] of Object.entries(formAnswers)) {
       if (skip.has(key) || !value) continue;
-      const label = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-      text += `${label}: ${value}\n\n`;
+      hasAnswers = true;
+      // If key looks like a question (long text with spaces/punctuation), use as-is
+      // Otherwise convert underscored keys to readable labels
+      const label = key.includes(' ') || key.includes('?')
+        ? key
+        : key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      text += `Q: ${label}\nA: ${value}\n\n`;
+    }
+    if (!hasAnswers) {
+      text += '(No form responses were included in the submission)\n\n';
     }
   }
 
