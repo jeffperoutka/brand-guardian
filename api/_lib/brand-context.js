@@ -1,19 +1,19 @@
 /**
- * Brand Context Manager v3
+ * Brand Context Manager — Enrichment Edition
  *
- * ONE LIVING DOC â all research appends to the existing Client Info Doc page.
+ * ONE LIVING DOC — all research appends to the existing Client Info Doc page.
  * No separate pages. The doc grows over time as a master brand reference.
  *
  * Flow:
  * 1. Find the Client Info Doc in ClickUp
- * 2. Read its content â check if Brand Guardian research section already exists
- * 3. If research exists â parse it into a structured profile, done
- * 4. If no research â run deep research (website crawl + doc analysis)
- *    â APPEND findings to the same page (below existing content)
- * 5. Return structured brand profile for alignment checking
+ * 2. Read its content — check if Brand Guardian research section already exists
+ * 3. If research exists AND not forceRefresh — parse it into a structured profile, done
+ * 4. If no research OR forceRefresh — run deep research (website crawl + doc analysis)
+ *    — APPEND findings to the same page (below existing content)
+ * 5. Return structured brand profile
  *
- * Future: call recordings, client meeting notes, priority updates all get
- * appended to this same doc with timestamps, building a living brand record.
+ * The enrichment skill always runs with forceRefresh=true to ensure
+ * the latest research is compiled on every trigger.
  */
 
 const { askClaudeLong } = require('./connectors/claude');
@@ -25,12 +25,9 @@ const MAX_DOC_CHARS = 30000;
  * Safely extract JSON from Claude response that may contain markdown fences or extra text.
  */
 function extractJSON(text) {
-  // Strategy 1: Direct parse
   try { return JSON.parse(text); } catch(e) {}
-  // Strategy 2: Strip markdown code fences
   const stripped = text.replace(/^```(?:json)?\n?/gm, '').replace(/```$/gm, '').trim();
   try { return JSON.parse(stripped); } catch(e) {}
-  // Strategy 3: Find outermost braces
   const first = text.indexOf('{');
   const last = text.lastIndexOf('}');
   if (first !== -1 && last > first) {
@@ -39,16 +36,12 @@ function extractJSON(text) {
   throw new Error('Could not extract JSON from response (length=' + text.length + ', preview=' + text.substring(0, 100) + ')');
 }
 
-
 const BRAND_CACHE_PREFIX = 'brand-cache';
-const RESEARCH_SECTION_MARKER = '---\n\n## ð¡ï¸ Brand Guardian Research';
-const RESEARCH_MARKER_CHECK = '## ð¡ï¸ Brand Guardian Research';
+const RESEARCH_SECTION_MARKER = '---\n\n## 🛡️ Brand Guardian Research';
+const RESEARCH_MARKER_CHECK = '## 🛡️ Brand Guardian Research';
 
-// âââ CLICKUP API HELPERS âââ
+// ── CLICKUP API HELPERS ──
 
-/**
- * Search ClickUp for a client's Info Doc
- */
 async function findClientInfoDoc(clientName) {
   const workspaceId = (process.env.CLICKUP_WORKSPACE_ID || '').trim();
   const token = (process.env.CLICKUP_API_TOKEN || '').trim();
@@ -62,7 +55,6 @@ async function findClientInfoDoc(clientName) {
   console.log(`[findClientInfoDoc] Looking for Info Doc for client: "${clientName}"`);
 
   try {
-    // Use the v3 docs listing endpoint (v3 search returns 404)
     const resp = await fetch(`https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs`, {
       method: 'GET',
       headers: { 'Authorization': token, 'Content-Type': 'application/json' },
@@ -78,14 +70,9 @@ async function findClientInfoDoc(clientName) {
     const docs = data.docs || data.results || data.data || [];
     console.log(`[findClientInfoDoc] Got ${docs.length} docs, searching for "${clientLower}"`);
 
-    // Try to find a matching Info Doc
     for (const doc of docs) {
       const docName = (doc.name || doc.title || '').toLowerCase();
-
-      // Must be an Info Doc
       if (!/(info|client info)/i.test(docName)) continue;
-
-      // Check if client name appears in the doc title
       if (docName.includes(clientLower)) {
         const docId = doc.id || doc.doc_id;
         console.log(`[findClientInfoDoc] Found match: "${doc.name}" (ID: ${docId})`);
@@ -93,16 +80,10 @@ async function findClientInfoDoc(clientName) {
       }
     }
 
-    // Fallback: try partial matching (e.g., "neurogan" matches "Neurogan Health Client Info Doc")
     for (const doc of docs) {
       const docName = (doc.name || doc.title || '').toLowerCase();
       if (!/(info|client info)/i.test(docName)) continue;
-
-      // Extract client name from doc title and compare
-      const extractedName = docName
-        .replace(/\s*(client\s+)?info(\s+doc)?$/i, '')
-        .trim();
-
+      const extractedName = docName.replace(/\s*(client\s+)?info(\s+doc)?$/i, '').trim();
       if (extractedName.includes(clientLower) || clientLower.includes(extractedName)) {
         const docId = doc.id || doc.doc_id;
         console.log(`[findClientInfoDoc] Partial match: "${doc.name}" (ID: ${docId})`);
@@ -118,14 +99,9 @@ async function findClientInfoDoc(clientName) {
   }
 }
 
-/**
- * Read the Client Info Doc â returns the FIRST page's content and ID.
- * We treat page 0 as the master page where everything lives.
- */
 async function readDocContent(docId) {
   const workspaceId = process.env.CLICKUP_WORKSPACE_ID;
 
-  // Get page list
   const pagesResp = await fetch(
     `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs/${docId}/pages`,
     { headers: { 'Authorization': process.env.CLICKUP_API_TOKEN } }
@@ -137,10 +113,8 @@ async function readDocContent(docId) {
   }
 
   const pagesData = await pagesResp.json();
-
   if (!pagesData.pages?.length) return { content: '', pageId: null, pages: [] };
 
-  // Read ALL pages to get the full picture, but track the main page
   const mainPage = pagesData.pages[0];
   let mainContent = '';
   let allContent = '';
@@ -151,17 +125,10 @@ async function readDocContent(docId) {
         `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs/${docId}/pages/${page.id}?content_format=text/md`,
         { headers: { 'Authorization': process.env.CLICKUP_API_TOKEN } }
       );
-      if (!pageResp.ok) {
-        console.error(`ClickUp page ${page.id} HTTP ${pageResp.status}`);
-        continue;
-      }
+      if (!pageResp.ok) continue;
       const pageData = await pageResp.json();
       const content = pageData.content || '';
-
-      if (page.id === mainPage.id) {
-        mainContent = content;
-      }
-
+      if (page.id === mainPage.id) mainContent = content;
       allContent += `\n\n${content}`;
     } catch (err) {
       console.error(`Error reading page ${page.id}:`, err.message);
@@ -176,11 +143,6 @@ async function readDocContent(docId) {
   };
 }
 
-/**
- * Append research to the existing Client Info Doc page.
- * Uses ClickUp's page update API with content_edit_mode: "append"
- * so we ADD to the existing content rather than replacing it.
- */
 async function appendResearchToDoc(docId, pageId, clientName, research) {
   const workspaceId = process.env.CLICKUP_WORKSPACE_ID;
 
@@ -188,8 +150,8 @@ async function appendResearchToDoc(docId, pageId, clientName, research) {
 
 ${RESEARCH_SECTION_MARKER}
 
-*Auto-generated on ${new Date().toISOString().split('T')[0]} â updated by Brand Guardian*
-*This section is used for ongoing brand alignment checks. New insights are appended over time.*
+*Auto-generated on ${new Date().toISOString().split('T')[0]} — updated by Brand Guardian*
+*This section is used for brand alignment checks, content creation, and brand-consistent output.*
 
 ---
 
@@ -241,19 +203,14 @@ ${(research.keyMessages || []).map(m => `- ${m}`).join('\n') || 'Not specified'}
 ${research.industryContext || 'Not available'}`;
 
   const token = (process.env.CLICKUP_API_TOKEN || '').trim();
-  console.log(`[appendResearchToDoc] Appending to doc ${docId}, page ${pageId}, workspace ${workspaceId}, token starts: ${token.slice(0, 6)}...`);
+  console.log(`[appendResearchToDoc] Appending to doc ${docId}, page ${pageId}`);
 
   try {
-    // Try v3 API first
     const url = `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs/${docId}/pages/${pageId}`;
-    console.log(`[appendResearchToDoc] PUT ${url}`);
 
     const resp = await fetch(url, {
       method: 'PUT',
-      headers: {
-        'Authorization': token,
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Authorization': token, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         content: researchMarkdown,
         content_format: 'text/md',
@@ -265,19 +222,13 @@ ${research.industryContext || 'Not available'}`;
     console.log(`[appendResearchToDoc] Response ${resp.status}: ${respText.slice(0, 300)}`);
 
     if (!resp.ok) {
-      console.error(`[appendResearchToDoc] ClickUp append failed HTTP ${resp.status}`);
-
-      // Try creating a NEW page instead of appending
       console.log('[appendResearchToDoc] Trying fallback: create new page...');
       const newPageUrl = `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs/${docId}/pages`;
       const newPageResp = await fetch(newPageUrl, {
         method: 'POST',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Authorization': token, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: `ð¡ï¸ Brand Guardian Research â ${clientName}`,
+          name: `🛡️ Brand Guardian Research — ${clientName}`,
           content: researchMarkdown,
           content_format: 'text/md',
         }),
@@ -299,11 +250,8 @@ ${research.industryContext || 'Not available'}`;
   }
 }
 
-// âââ WEBSITE CRAWLING âââ
+// ── WEBSITE CRAWLING ──
 
-/**
- * Deep crawl â hits 30+ paths plus discovers internal links
- */
 async function deepCrawlWebsite(url) {
   if (!url.startsWith('http')) url = `https://${url}`;
   const baseUrl = new URL(url).origin;
@@ -334,7 +282,7 @@ async function deepCrawlWebsite(url) {
       const timeout = setTimeout(() => controller.abort(), 8000);
       const resp = await fetch(`${baseUrl}${path}`, {
         signal: controller.signal,
-        headers: { 'User-Agent': 'BrandGuardian/1.0 (brand-alignment-bot)' },
+        headers: { 'User-Agent': 'BrandGuardian/1.0 (brand-enrichment-bot)' },
         redirect: 'follow',
       });
       clearTimeout(timeout);
@@ -363,19 +311,18 @@ async function deepCrawlWebsite(url) {
           });
         }
 
-        return html; // Return for link discovery
+        return html;
       }
     } catch (err) { /* skip */ }
     return null;
   }
 
-  // Crawl predefined paths
   for (const path of pagePaths) {
     await crawlPage(path);
     await new Promise(r => setTimeout(r, 300));
   }
 
-  // Discover + crawl additional internal links from homepage
+  // Discover additional internal links from homepage
   if (pages.length > 0) {
     try {
       const homepageHtml = pages[0]?.text ? null : await (await fetch(baseUrl)).text();
@@ -405,27 +352,22 @@ function formatCrawledPages(pages) {
   ).join('\n\n').slice(0, 25000);
 }
 
-// âââ RESEARCH & PROFILE BUILDING âââ
+// ── RESEARCH & PROFILE BUILDING ──
 
 function hasExistingResearch(docContent) {
   return docContent.includes(RESEARCH_MARKER_CHECK);
 }
 
-function extractResearchSection(docContent) {
-  const idx = docContent.indexOf(RESEARCH_MARKER_CHECK);
-  if (idx === -1) return null;
-  return docContent.slice(idx);
-}
-
 /**
- * Run deep research â website crawl + Claude analysis
+ * Run deep research — website crawl + Claude analysis.
+ * This is the core enrichment engine.
  */
-async function runDeepResearch(clientName, existingDocContent, websiteUrl, progressCallback, directives = {}) {
-  // Truncate oversized input to prevent Claude errors
-  if (existingDocContent && existingDocContent.length > 30000) {
-    console.log('[runDeepResearch] Truncating existingDocContent from ' + existingDocContent.length + ' to 30000 chars for ' + clientName);
-    existingDocContent = existingDocContent.substring(0, 30000);
+async function runDeepResearch(clientName, existingDocContent, websiteUrl, progressCallback, options = {}) {
+  if (existingDocContent && existingDocContent.length > MAX_DOC_CHARS) {
+    console.log('[runDeepResearch] Truncating existingDocContent from ' + existingDocContent.length + ' to ' + MAX_DOC_CHARS);
+    existingDocContent = existingDocContent.substring(0, MAX_DOC_CHARS);
   }
+
   if (progressCallback) await progressCallback('Crawling website pages...');
   let crawledPages = [];
   let websiteData = '';
@@ -436,80 +378,91 @@ async function runDeepResearch(clientName, existingDocContent, websiteUrl, progr
 
   if (progressCallback) await progressCallback(`Analyzing ${crawledPages.length} pages + Client Info Doc...`);
 
-  const systemPrompt = `You are a Brand Research Specialist at AEO Labs (AI SEO agency). Conduct deep brand research to build a comprehensive client profile.
+  const enrichmentNotes = options.enrichmentNotes
+    ? `\n\nENRICHMENT NOTES FROM TEAM:\n${options.enrichmentNotes}\nUse these notes to guide your research focus. They may indicate strategic pivots, areas of emphasis, or topics to explore deeper.`
+    : '';
+
+  const systemPrompt = `You are a Brand Research Specialist at AEO Labs (AI SEO agency). Your job is to conduct deep brand research and compile a comprehensive client profile.
+
+This profile will be THE source of truth for:
+- Future content creation bots (so they write in the right voice)
+- Brand alignment checkers (so they can verify content matches the brand)
+- Link building teams (so outreach and guest posts are on-brand)
+- Reddit/social teams (so comments and posts sound authentic)
+
+You must be THOROUGH and OPINIONATED. A vague profile is useless.
 
 Data sources:
-1. Client Info Doc â their answers about their business
-2. Website content â crawled pages
+1. Client Info Doc — their answers about their business (onboarding questionnaire)
+2. Website content — crawled pages from their actual site
+${enrichmentNotes}
 
-Synthesize into a thorough, opinionated brand profile. Don't just summarize â analyze patterns, positioning, voice nuances, and themes.
-
-OUTPUT â valid JSON only, no markdown fences:
+OUTPUT — valid JSON only, no markdown fences:
 {
-  "brandOverview": "3-5 sentence overview of who they are and how they position themselves",
+  "brandOverview": "3-5 sentence overview of who they are, what they do, and how they position themselves in the market",
   "website": "main URL",
-  "industry": "specific industry/niche",
+  "industry": "specific industry/niche (not just 'technology' — be precise)",
   "targetAudience": {
-    "primary": "detailed primary audience",
+    "primary": "detailed primary audience — who buys from them",
     "secondary": "secondary audience if any",
     "demographics": "age, location, income, job titles, company size",
     "psychographics": "interests, values, pain points, motivations"
   },
   "brandVoice": {
-    "tone": "detailed tone (not just 'professional' â be specific about HOW they write)",
-    "personality": "brand personality traits with examples",
-    "doNotSay": ["specific phrases/topics/approaches they avoid"],
-    "preferredTerms": ["terminology they consistently use"]
+    "tone": "detailed tone analysis — not just 'professional'. HOW do they write? Are they formal or casual? Data-driven or story-driven? Aspirational or practical? Give examples.",
+    "personality": "brand personality traits with evidence from their content",
+    "doNotSay": ["specific phrases, topics, or approaches they avoid or should avoid based on their positioning"],
+    "preferredTerms": ["terminology they consistently use — their vocabulary"]
   },
   "coreOfferings": {
-    "products": ["each product/service with brief description"],
-    "valueProposition": "unique value prop",
-    "keyBenefits": ["specific emphasized benefits"],
-    "pricingTier": "budget/mid-range/premium/enterprise with evidence"
+    "products": ["each product/service with a brief description of what it actually does"],
+    "valueProposition": "their unique value prop — why choose them over alternatives",
+    "keyBenefits": ["specific benefits they emphasize, not generic ones"],
+    "pricingTier": "budget/mid-range/premium/enterprise — with evidence for why"
   },
-  "competitors": [{"name": "Name", "differentiator": "How client differs"}],
-  "competitiveDifferentiators": "what makes them stand out â be specific",
+  "competitors": [{"name": "Competitor Name", "differentiator": "How the client differs from this competitor"}],
+  "competitiveDifferentiators": "what makes them genuinely stand out — be specific, not 'great customer service'",
   "contentThemes": {
-    "onBrandTopics": ["topics they'd publish on their own blog"],
-    "adjacentTopics": ["loosely related topics for guest posts"],
-    "offLimitTopics": ["inappropriate or irrelevant topics"]
+    "onBrandTopics": ["topics they'd publish on their own blog — things that showcase their expertise"],
+    "adjacentTopics": ["loosely related topics suitable for guest posts and link building"],
+    "offLimitTopics": ["topics that would damage their brand, confuse their audience, or misrepresent them"]
   },
-  "keyMessages": ["core marketing messages and taglines"],
+  "keyMessages": ["core marketing messages, taglines, and value statements they repeat"],
   "websiteInsights": {
-    "contentStyle": "how they write â length, complexity, data usage, storytelling",
-    "ctaPatterns": "what their CTAs look like",
-    "socialProof": "how they use testimonials/case studies",
-    "mainPages": ["key page types found"]
+    "contentStyle": "how they write — sentence length, complexity, use of data/stats, storytelling approach, formatting preferences",
+    "ctaPatterns": "what their calls-to-action look like — language, placement, urgency level",
+    "socialProof": "how they use testimonials, case studies, logos, numbers",
+    "mainPages": ["key page types found on the site"]
   },
-  "industryContext": "2-3 sentences about the industry landscape"
+  "industryContext": "2-3 sentences about the competitive landscape and market trends relevant to this brand"
 }
 
 RULES:
-1. Be specific and opinionated. "Professional tone" = useless. Say exactly HOW they sound.
-2. For doNotSay â what would make their audience cringe?
-3. Only list competitors you can identify from the content.
-4. Adjacent topics = what industry publications cover.
-5. Off-limit topics = what would damage their brand.
-6. If CLIENT DIRECTIVES are provided below, they OVERRIDE what you find on the website. The client is actively pivoting/repositioning â their website may not reflect their current direction. Treat the directives as the source of truth for brand positioning.
+1. Be specific and opinionated. "Professional tone" = useless. Say exactly HOW they sound with examples.
+2. For doNotSay — what would make their audience cringe? What's off-brand?
+3. Only list competitors you can actually identify from the content.
+4. Adjacent topics = what industry publications cover that overlaps with this brand's audience.
+5. Off-limit topics = what would damage their credibility or confuse their positioning.
+6. If the Info Doc mentions priorities or topics to avoid, those take highest priority.
+7. Cross-reference the Info Doc answers with the website — note any discrepancies.
+8. The profile should be detailed enough that someone who has NEVER heard of this brand can write content for them.`;
 
-${directives.priorities || directives.avoid ? `\nâââ CLIENT DIRECTIVES âââ\n${directives.priorities ? `PRIORITIZE (focus research on these topics): ${directives.priorities}` : ''}${directives.avoid ? `\nAVOID (do NOT include these in the brand profile): ${directives.avoid}` : ''}\nââââââââââââââââââââ\nIMPORTANT: These directives reflect the client's CURRENT strategic direction. Even if the website mentions avoided topics, exclude them from the profile. Build the profile around the priority topics instead.` : ''}`;
-
-  const userContent = `Research this client:
+  const userContent = `Research this client thoroughly:
 
 CLIENT: ${clientName}
 
-CLIENT INFO DOC:
-${existingDocContent || '(No client info doc content)'}
+CLIENT INFO DOC (onboarding answers):
+${existingDocContent || '(No client info doc content available)'}
 
-WEBSITE (${crawledPages.length} pages):
-${websiteData || '(No website data)'}
+WEBSITE (${crawledPages.length} pages crawled):
+${websiteData || '(No website data — could not crawl or no URL provided)'}
 
-Build the most thorough profile possible.`;
+Build the most thorough, opinionated profile possible. This will be used by content creators and AI bots to ensure everything produced is perfectly on-brand.`;
 
   const result = await askClaudeLong(systemPrompt, userContent, { maxTokens: 6000, timeout: 150000 });
 
   try {
-    return extractJSON(result));
+    return extractJSON(result);
   } catch (err) {
     console.error('Failed to parse research:', err.message);
     return null;
@@ -518,22 +471,17 @@ Build the most thorough profile possible.`;
 
 /**
  * Parse existing research from the doc into structured profile.
- * Reads the ENTIRE doc (original answers + research section) to build the profile.
  */
-async function parseExistingResearch(docContent, clientName, directives = {}) {
-  // Truncate oversized doc content
-  if (docContent && docContent.length > 30000) {
-    console.log('[parseExisting] Truncating docContent from ' + docContent.length + ' to 30000 chars');
-    docContent = docContent.substring(0, 30000);
+async function parseExistingResearch(docContent, clientName) {
+  if (docContent && docContent.length > MAX_DOC_CHARS) {
+    console.log('[parseExisting] Truncating docContent from ' + docContent.length + ' to ' + MAX_DOC_CHARS);
+    docContent = docContent.substring(0, MAX_DOC_CHARS);
   }
-  const directivesBlock = (directives.priorities || directives.avoid)
-    ? `\n\nCLIENT DIRECTIVES â THESE OVERRIDE WHAT THE DOC SAYS:\n${directives.priorities ? `PRIORITIZE: ${directives.priorities}\n` : ''}${directives.avoid ? `AVOID (exclude from profile): ${directives.avoid}\n` : ''}The client is repositioning. Build the profile around the priority topics and EXCLUDE avoided topics entirely, even if the doc mentions them.`
-    : '';
 
   const result = await askClaudeLong(
-    `Parse this client's brand document into a structured profile. The doc contains their original info answers AND brand research findings. Extract everything into a single comprehensive profile.${directivesBlock}
+    `Parse this client's brand document into a structured profile. The doc contains their original info answers AND brand research findings. Extract everything into a single comprehensive profile.
 
-OUTPUT â valid JSON only, no markdown fences:
+OUTPUT — valid JSON only, no markdown fences:
 {
   "brandOverview": "string",
   "website": "string",
@@ -549,44 +497,42 @@ OUTPUT â valid JSON only, no markdown fences:
   "industryContext": ""
 }
 
-Prioritize the MOST RECENT information if there are conflicts (newer entries at the bottom of the doc are more current).`,
+Prioritize the MOST RECENT information if there are conflicts.`,
     `CLIENT: ${clientName}\n\nFULL DOCUMENT:\n${docContent}`,
     { maxTokens: 5000, timeout: 90000 }
   );
 
   try {
-    return extractJSON(result));
+    return extractJSON(result);
   } catch (err) {
     console.error('Failed to parse existing research:', err.message);
     return null;
   }
 }
 
-// âââ MAIN ORCHESTRATOR âââ
+// ── MAIN ORCHESTRATOR ──
 
 /**
- * Get or build brand profile. Single flow:
- * 1. Check GitHub cache (7 day TTL)
- * 2. Find + read Client Info Doc from ClickUp
- * 3. If doc has research section â parse it
- * 4. If not â run deep research â append to same doc page
- * 5. Cache in GitHub for fast lookups
+ * Get or build brand profile.
+ *
+ * Options:
+ * - forceRefresh: true — always re-run research (used by enrichment skill)
+ * - enrichmentNotes: string — focus areas for the research
  */
-async function getOrBuildBrandProfile(clientName, websiteUrl, progressCallback, directives = {}) {
+async function getOrBuildBrandProfile(clientName, websiteUrl, progressCallback, options = {}) {
   const cacheKey = clientName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+  const forceRefresh = options.forceRefresh || false;
 
-  // Quick check GitHub cache â skip cache if directives are provided (priorities change the profile)
-  const hasDirectives = !!(directives.priorities || directives.avoid);
-  const cached = await github.readFile(`${BRAND_CACHE_PREFIX}/${cacheKey}.json`);
-  const cacheAge = cached?.cachedAt ? Date.now() - new Date(cached.cachedAt).getTime() : Infinity;
-  const CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
+  // Check GitHub cache (skip if forceRefresh)
+  if (!forceRefresh) {
+    const cached = await github.readFile(`${BRAND_CACHE_PREFIX}/${cacheKey}.json`);
+    const cacheAge = cached?.cachedAt ? Date.now() - new Date(cached.cachedAt).getTime() : Infinity;
+    const CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
 
-  if (cached && cacheAge < CACHE_TTL && !hasDirectives) {
-    if (progressCallback) await progressCallback('Brand profile loaded from cache.');
-    return { profile: cached, source: 'cache', researchNeeded: false };
-  }
-  if (hasDirectives && cached) {
-    if (progressCallback) await progressCallback('Directives provided â rebuilding profile with custom focus...');
+    if (cached && cacheAge < CACHE_TTL) {
+      if (progressCallback) await progressCallback('Brand profile loaded from cache.');
+      return { profile: cached, source: 'cache', researchNeeded: false };
+    }
   }
 
   // Find the Client Info Doc
@@ -597,30 +543,26 @@ async function getOrBuildBrandProfile(clientName, websiteUrl, progressCallback, 
   let mainPageId = null;
 
   if (docInfo) {
-    // Read the doc
     if (progressCallback) await progressCallback(`Found "${docInfo.docName}". Reading...`);
     const docData = await readDocContent(docInfo.docId);
     fullContent = docData.content || '';
     mainPageId = docData.mainPageId;
 
-    if (fullContent) {
-      // Check if research already exists in the doc
-      if (hasExistingResearch(fullContent)) {
-        if (progressCallback) await progressCallback('Existing research found. Building profile...');
-        const profile = await parseExistingResearch(fullContent, clientName, directives);
-
-        if (profile) {
-          const profileWithMeta = { ...profile, clientName, cachedAt: new Date().toISOString(), cacheKey };
-          await github.writeFile(`${BRAND_CACHE_PREFIX}/${cacheKey}.json`, profileWithMeta, `brand-cache: ${clientName}`);
-          return { profile: profileWithMeta, source: 'existing_research', researchNeeded: false };
-        }
+    // If existing research and NOT force refresh, parse and return
+    if (fullContent && hasExistingResearch(fullContent) && !forceRefresh) {
+      if (progressCallback) await progressCallback('Existing research found. Building profile...');
+      const profile = await parseExistingResearch(fullContent, clientName);
+      if (profile) {
+        const profileWithMeta = { ...profile, clientName, cachedAt: new Date().toISOString(), cacheKey };
+        await github.writeFile(`${BRAND_CACHE_PREFIX}/${cacheKey}.json`, profileWithMeta, `brand-cache: ${clientName}`);
+        return { profile: profileWithMeta, source: 'existing_research', researchNeeded: false };
       }
     }
   } else {
-    console.log(`No ClickUp doc found for "${clientName}" â will attempt website-only research`);
+    console.log(`No ClickUp doc found for "${clientName}" — will attempt website-only research`);
   }
 
-  // No research exists (or no doc at all) â need website URL to proceed
+  // Extract website URL from doc if not provided
   if (!websiteUrl && fullContent) {
     const urlMatch = fullContent.match(/https?:\/\/(?:www\.)?[a-zA-Z0-9\-]+\.[a-zA-Z]{2,}(?:\/[^\s)]*)?/);
     if (urlMatch) websiteUrl = urlMatch[0];
@@ -629,35 +571,41 @@ async function getOrBuildBrandProfile(clientName, websiteUrl, progressCallback, 
   if (!websiteUrl && !fullContent) {
     return {
       profile: null, source: 'none',
-      error: `Could not find a Client Info Doc for "${clientName}" in ClickUp and no website URL was provided. Either add an Info Doc to ClickUp or provide a website URL.`,
+      error: `Could not find a Client Info Doc for "${clientName}" in ClickUp and no website URL was provided.`,
     };
   }
 
-  // Run deep research â works with just website, just doc content, or both
-  const researchLabel = docInfo
-    ? 'No existing research. Running deep brand research...'
-    : `No ClickUp doc found â running brand research from website${websiteUrl ? ` (${websiteUrl})` : ''}...`;
-  if (progressCallback) await progressCallback(researchLabel);
+  // Run deep research
+  if (progressCallback) {
+    const label = forceRefresh
+      ? 'Running fresh brand enrichment research...'
+      : docInfo
+        ? 'No existing research. Running deep brand research...'
+        : `No ClickUp doc found — running brand research from website...`;
+    await progressCallback(label);
+  }
 
-  const research = await runDeepResearch(clientName, fullContent, websiteUrl, progressCallback, directives);
+  const research = await runDeepResearch(clientName, fullContent, websiteUrl, progressCallback, {
+    enrichmentNotes: options.enrichmentNotes,
+  });
 
   if (!research) {
     return { profile: null, source: 'none', error: 'Deep research failed. Check logs.' };
   }
 
-  // APPEND research to the existing doc page if we have one
+  // Append research to the existing doc page
   let savedToDoc = false;
   if (docInfo && mainPageId) {
-    if (progressCallback) await progressCallback('Appending research to Client Info Doc...');
+    if (progressCallback) await progressCallback('Saving research to Client Info Doc...');
     const appendResult = await appendResearchToDoc(docInfo.docId, mainPageId, clientName, research);
     savedToDoc = !!appendResult;
     if (!savedToDoc) {
       console.error(`[getOrBuildBrandProfile] Failed to append research to doc ${docInfo.docId}`);
-      if (progressCallback) await progressCallback('â ï¸ Research complete but failed to save to ClickUp doc. Continuing...');
+      if (progressCallback) await progressCallback('⚠️ Research complete but failed to save to ClickUp. Caching in GitHub...');
     }
   }
 
-  // Cache
+  // Cache in GitHub
   const profileWithMeta = { ...research, clientName, cachedAt: new Date().toISOString(), cacheKey };
   await github.writeFile(`${BRAND_CACHE_PREFIX}/${cacheKey}.json`, profileWithMeta, `brand-cache: ${clientName}`);
 
@@ -665,28 +613,7 @@ async function getOrBuildBrandProfile(clientName, websiteUrl, progressCallback, 
 }
 
 /**
- * List cached brand profiles (for the dropdown)
- */
-async function listCachedBrands() {
-  const pat = process.env.GITHUB_PAT;
-  if (!pat) return [];
-  try {
-    const resp = await fetch(`https://api.github.com/repos/jeffperoutka/brand-guardian/contents/${BRAND_CACHE_PREFIX}`, {
-      headers: { 'Authorization': `Bearer ${pat}`, 'Accept': 'application/vnd.github.v3+json' },
-    });
-    if (!resp.ok) return [];
-    const files = await resp.json();
-    return files
-      .filter(f => f.name.endsWith('.json'))
-      .map(f => f.name.replace('.json', '').replace(/-/g, ' '));
-  } catch (err) { return []; }
-}
-
-/**
- * List all Client Info Docs from ClickUp.
- * Searches for docs with "Info Doc" / "Client Info" in the name
- * and returns an array of { name, docId } for each match.
- * The client name is extracted from the doc name (e.g. "Kobo Pickleball Info Doc" â "Kobo Pickleball").
+ * List all Client Info Docs from ClickUp (for the dropdown).
  */
 async function listInfoDocs() {
   const workspaceId = (process.env.CLICKUP_WORKSPACE_ID || '').trim();
@@ -699,7 +626,6 @@ async function listInfoDocs() {
 
   const headers = { 'Authorization': token, 'Content-Type': 'application/json' };
 
-  // Try multiple ClickUp API approaches since v3 search returns 404
   const approaches = [
     {
       name: 'v3-docs-list',
@@ -733,17 +659,16 @@ async function listInfoDocs() {
 
       if (!resp.ok) {
         const errBody = await resp.text().catch(() => 'unknown');
-        console.log(`[listInfoDocs] ${approach.name} â HTTP ${resp.status}: ${errBody.slice(0, 200)}`);
-        continue; // Try next approach
+        console.log(`[listInfoDocs] ${approach.name} — HTTP ${resp.status}: ${errBody.slice(0, 200)}`);
+        continue;
       }
 
       const data = await resp.json();
       const docs = approach.extractDocs(data);
-      console.log(`[listInfoDocs] ${approach.name} â ${docs.length} docs found`);
+      console.log(`[listInfoDocs] ${approach.name} — ${docs.length} docs found`);
 
       if (docs.length === 0) continue;
 
-      // Parse docs into client list
       const results = [];
       const seen = new Set();
 
@@ -753,20 +678,12 @@ async function listInfoDocs() {
         seen.add(docId);
 
         const docName = doc.name || doc.title || '';
-
-        // Only include docs that look like Info Docs
         if (!/(info|client info)/i.test(docName)) continue;
-
-        // Skip templates and non-client docs
         if (/template/i.test(docName)) continue;
         if (/definitions/i.test(docName)) continue;
         if (/^sprint\s+\d/i.test(docName)) continue;
 
-        // Extract client name from doc title
-        const name = docName
-          .replace(/\s*(client\s+)?info(\s+doc)?$/i, '')
-          .trim();
-
+        const name = docName.replace(/\s*(client\s+)?info(\s+doc)?$/i, '').trim();
         if (name) {
           results.push({ name, docId, docName });
         }
@@ -786,7 +703,6 @@ async function listInfoDocs() {
 
 module.exports = {
   getOrBuildBrandProfile,
-  listCachedBrands,
   listInfoDocs,
   findClientInfoDoc,
   readDocContent,

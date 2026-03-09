@@ -1,7 +1,7 @@
 {
   "name": "brand-guardian",
-  "version": "1.0.0",
-  "description": "Brand alignment checker bot — analyzes content against client brand guidelines",
+  "version": "2.0.0",
+  "description": "Brand enrichment bot — deep research and profile building for client brands",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.52.0",
     "@vercel/functions": "^1.4.0"
