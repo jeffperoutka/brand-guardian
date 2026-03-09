@@ -114,6 +114,7 @@ async function findClientInfoDoc(clientName) {
 
 async function readDocContent(docId) {
   const workspaceId = process.env.CLICKUP_WORKSPACE_ID;
+  console.log(`[readDocContent] Reading doc ${docId} in workspace ${workspaceId}`);
 
   const pagesResp = await fetch(
     `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs/${docId}/pages`,
@@ -121,7 +122,8 @@ async function readDocContent(docId) {
   );
 
   if (!pagesResp.ok) {
-    console.error(`ClickUp pages HTTP ${pagesResp.status}:`, await pagesResp.text().catch(() => ''));
+    const errText = await pagesResp.text().catch(() => '');
+    console.error(`[readDocContent] ClickUp pages HTTP ${pagesResp.status}: ${errText.slice(0, 300)}`);
     return { content: '', pageId: null, pages: [] };
   }
 
@@ -602,6 +604,8 @@ async function getOrBuildBrandProfile(clientName, websiteUrl, progressCallback, 
   }
 
   if (!websiteUrl && !fullContent) {
+    const debugInfo = options.docId ? ` (docId=${options.docId}, readDocContent returned empty)` : ' (no docId provided, findClientInfoDoc returned null)';
+    console.error(`[getOrBuildBrandProfile] No content and no URL for "${clientName}"${debugInfo}`);
     return {
       profile: null, source: 'none',
       error: `Could not find a Client Info Doc for "${clientName}" in ClickUp and no website URL was provided.`,

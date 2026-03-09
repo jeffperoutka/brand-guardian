@@ -110,8 +110,10 @@ async function handleEnrichment(payload) {
   let docId = null;
 
   const selectedOption = values?.client_block?.client_select?.selected_option;
+  console.log('[handleEnrichment] Raw selected option:', JSON.stringify(selectedOption));
   if (selectedOption) {
     const val = selectedOption.value;
+    console.log(`[handleEnrichment] Parsing value: "${val}"`);
     if (val.startsWith(NEW_CLIENT_PREFIX)) {
       clientName = val.slice(NEW_CLIENT_PREFIX.length).replace(/-/g, ' ');
     } else if (val === '__new_hint__' || val === '__empty__') {
@@ -121,8 +123,10 @@ async function handleEnrichment(payload) {
       const sepIdx = val.indexOf('::');
       docId = val.substring(0, sepIdx);
       clientName = val.substring(sepIdx + 2);
+      console.log(`[handleEnrichment] Parsed docId="${docId}", clientName="${clientName}"`);
     } else {
       clientName = val.replace(/-/g, ' ');
+      console.log(`[handleEnrichment] Legacy value (no docId): clientName="${clientName}"`);
     }
   }
 
