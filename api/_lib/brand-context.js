@@ -52,55 +52,54 @@ async function findClientInfoDoc(clientName) {
   }
 
   const clientLower = clientName.toLowerCase().trim();
-  // Also create a no-space version for matching (e.g., "open sea" → "opensea")
-  const clientNoSpaces = clientLower.replace(/\s+/g, '');
-  console.log(`[findClientInfoDoc] Looking for Info Doc for client: "${clientName}" (also trying: "${clientNoSpaces}")`);
+  console.log(`[findClientInfoDoc] Looking for Info Doc for client: "${clientName}"`);
+
+  function namesMatch(docNameLower, searchLower) {
+    if (docNameLower.includes(searchLower)) return true;
+    const docNoSpaces = docNameLower.replace(/\s+/g, '');
+    const searchNoSpaces = searchLower.replace(/\s+/g, '');
+    if (docNoSpaces.includes(searchNoSpaces)) return true;
+    if (searchNoSpaces.includes(docNoSpaces)) return true;
+    return false;
+  }
 
   try {
-    const resp = await fetch(`https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs`, {
-      method: 'GET',
+    // Use search API — confirmed to return correct doc IDs
+    const resp = await fetch(`https://api.clickup.com/api/v3/workspaces/${workspaceId}/search`, {
+      method: 'POST',
       headers: { 'Authorization': token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: `${clientName} Info Doc`, types: ['doc'], limit: 20 }),
     });
 
     if (!resp.ok) {
       const errText = await resp.text().catch(() => 'unknown');
-      console.error(`[findClientInfoDoc] ClickUp docs API HTTP ${resp.status}:`, errText.slice(0, 200));
+      console.error(`[findClientInfoDoc] Search API HTTP ${resp.status}: ${errText.slice(0, 200)}`);
       return null;
     }
 
     const data = await resp.json();
-    const docs = data.docs || data.results || data.data || [];
-    console.log(`[findClientInfoDoc] Got ${docs.length} docs, searching for "${clientLower}"`);
-
-    // Helper: check if two names match (handles spaces, e.g., "open sea" matches "opensea")
-    function namesMatch(docNameLower, searchLower) {
-      if (docNameLower.includes(searchLower)) return true;
-      // Try without spaces: "opensea" includes "opensea"
-      const docNoSpaces = docNameLower.replace(/\s+/g, '');
-      const searchNoSpaces = searchLower.replace(/\s+/g, '');
-      if (docNoSpaces.includes(searchNoSpaces)) return true;
-      if (searchNoSpaces.includes(docNoSpaces)) return true;
-      return false;
-    }
+    const docs = data.results || [];
+    console.log(`[findClientInfoDoc] Search returned ${docs.length} results`);
 
     for (const doc of docs) {
-      const docName = (doc.name || doc.title || '').toLowerCase();
+      if (doc.type !== 'doc') continue;
+      const docName = (doc.name || '').toLowerCase();
       if (!/(info|client info)/i.test(docName)) continue;
       if (namesMatch(docName, clientLower)) {
-        const docId = doc.id || doc.doc_id;
-        console.log(`[findClientInfoDoc] Found match: "${doc.name}" (ID: ${docId})`);
-        return { docId, docName: doc.name || doc.title };
+        console.log(`[findClientInfoDoc] Match: "${doc.name}" (ID: ${doc.id})`);
+        return { docId: doc.id, docName: doc.name };
       }
     }
 
+    // Also try partial match on extracted name
     for (const doc of docs) {
-      const docName = (doc.name || doc.title || '').toLowerCase();
+      if (doc.type !== 'doc') continue;
+      const docName = (doc.name || '').toLowerCase();
       if (!/(info|client info)/i.test(docName)) continue;
-      const extractedName = docName.replace(/\s*(client\s+)?info(\s+doc)?$/i, '').trim();
+      const extractedName = docName.replace(/\s*(client\s+)?info(\s+doc)?s?$/i, '').trim();
       if (namesMatch(extractedName, clientLower)) {
-        const docId = doc.id || doc.doc_id;
-        console.log(`[findClientInfoDoc] Partial match: "${doc.name}" (ID: ${docId})`);
-        return { docId, docName: doc.name || doc.title };
+        console.log(`[findClientInfoDoc] Partial match: "${doc.name}" (ID: ${doc.id})`);
+        return { docId: doc.id, docName: doc.name };
       }
     }
 
@@ -668,13 +667,8 @@ async function listInfoDocs() {
 
   const headers = { 'Authorization': token, 'Content-Type': 'application/json' };
 
+  // Search API first — confirmed to return correct doc IDs that work with pages endpoint
   const approaches = [
-    {
-      name: 'v3-docs-list',
-      url: `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs`,
-      method: 'GET',
-      extractDocs: (data) => data.docs || data.results || data.data || [],
-    },
     {
       name: 'v3-search',
       url: `https://api.clickup.com/api/v3/workspaces/${workspaceId}/search`,
@@ -683,8 +677,8 @@ async function listInfoDocs() {
       extractDocs: (data) => data.results || [],
     },
     {
-      name: 'v2-search',
-      url: `https://api.clickup.com/api/v2/team/${workspaceId}/doc`,
+      name: 'v3-docs-list',
+      url: `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs`,
       method: 'GET',
       extractDocs: (data) => data.docs || data.results || data.data || [],
     },
@@ -717,6 +711,8 @@ async function listInfoDocs() {
       for (const doc of docs) {
         const docId = doc.id || doc.doc_id;
         if (!docId || seen.has(docId)) continue;
+        // Skip non-doc results from search API
+        if (doc.type && doc.type !== 'doc') continue;
         seen.add(docId);
 
         const docName = doc.name || doc.title || '';
@@ -725,14 +721,14 @@ async function listInfoDocs() {
         if (/definitions/i.test(docName)) continue;
         if (/^sprint\s+\d/i.test(docName)) continue;
 
-        const name = docName.replace(/\s*(client\s+)?info(\s+doc)?$/i, '').trim();
+        const name = docName.replace(/\s*(client\s+)?info(\s+doc)?s?$/i, '').trim();
         if (name) {
           results.push({ name, docId, docName });
         }
       }
 
       results.sort((a, b) => a.name.localeCompare(b.name));
-      console.log(`[listInfoDocs] Returning ${results.length} clients:`, results.map(r => r.name).join(', '));
+      console.log(`[listInfoDocs] Returning ${results.length} clients:`, results.map(r => `${r.name}(${r.docId})`).join(', '));
       return results;
     } catch (err) {
       console.error(`[listInfoDocs] ${approach.name} error:`, err.message);
