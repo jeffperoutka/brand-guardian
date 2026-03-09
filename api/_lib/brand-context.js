@@ -673,22 +673,85 @@ async function getOrBuildBrandProfile(clientName, websiteUrl, progressCallback, 
   return { profile: profileWithMeta, source: 'new_research', researchNeeded: true, savedToDoc };
 }
 
+const INFO_DOCS_INDEX_PATH = `${BRAND_CACHE_PREFIX}/info-docs-index.json`;
+const INFO_DOCS_INDEX_TTL = 6 * 60 * 60 * 1000; // 6 hours
+
 /**
- * List all Client Info Docs from ClickUp (for the dropdown).
+ * List all Client Info Docs — GitHub-cached for speed/reliability.
+ * The dropdown calls this on every keystroke, so it must be fast.
+ * ClickUp pagination (10+ API calls) is only used to refresh the cache.
  */
 async function listInfoDocs() {
+  // 1. Try GitHub cache first (single fast API call)
+  try {
+    const cached = await github.readFile(INFO_DOCS_INDEX_PATH);
+    if (cached && cached.docs && Array.isArray(cached.docs)) {
+      const age = cached.updatedAt ? Date.now() - new Date(cached.updatedAt).getTime() : Infinity;
+      if (age < INFO_DOCS_INDEX_TTL) {
+        console.log(`[listInfoDocs] Serving ${cached.docs.length} docs from GitHub cache (age: ${Math.round(age / 60000)}m)`);
+        return cached.docs;
+      }
+      console.log(`[listInfoDocs] GitHub cache stale (age: ${Math.round(age / 60000)}m), refreshing from ClickUp`);
+    }
+  } catch (err) {
+    console.error('[listInfoDocs] GitHub cache read failed:', err.message);
+  }
+
+  // 2. Refresh from ClickUp (paginated)
+  const results = await fetchInfoDocsFromClickUp();
+
+  // 3. Save to GitHub cache (even if empty, to avoid hammering ClickUp)
+  if (results.length > 0) {
+    try {
+      await github.writeFile(INFO_DOCS_INDEX_PATH, {
+        docs: results,
+        updatedAt: new Date().toISOString(),
+        count: results.length,
+      }, 'auto: refresh info docs index');
+      console.log(`[listInfoDocs] Saved ${results.length} docs to GitHub cache`);
+    } catch (err) {
+      console.error('[listInfoDocs] GitHub cache write failed:', err.message);
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Force-refresh the info docs index from ClickUp and save to GitHub.
+ * Called during enrichment runs to keep the cache fresh.
+ */
+async function refreshInfoDocsIndex() {
+  const results = await fetchInfoDocsFromClickUp();
+  if (results.length > 0) {
+    try {
+      await github.writeFile(INFO_DOCS_INDEX_PATH, {
+        docs: results,
+        updatedAt: new Date().toISOString(),
+        count: results.length,
+      }, 'auto: refresh info docs index');
+    } catch (err) {
+      console.error('[refreshInfoDocsIndex] GitHub write failed:', err.message);
+    }
+  }
+  return results;
+}
+
+/**
+ * Paginate through all ClickUp docs and filter for Info Docs.
+ */
+async function fetchInfoDocsFromClickUp() {
   const workspaceId = (process.env.CLICKUP_WORKSPACE_ID || '').trim();
   const token = (process.env.CLICKUP_API_TOKEN || '').trim();
 
   if (!workspaceId || !token) {
-    console.error('[listInfoDocs] Missing CLICKUP_WORKSPACE_ID or CLICKUP_API_TOKEN');
+    console.error('[fetchInfoDocsFromClickUp] Missing CLICKUP_WORKSPACE_ID or CLICKUP_API_TOKEN');
     return [];
   }
 
   const headers = { 'Authorization': token, 'Content-Type': 'application/json' };
 
   try {
-    // Paginate through all docs — Info Docs may be on later pages
     let allDocs = [];
     let nextCursor = undefined;
     let pages = 0;
@@ -700,7 +763,8 @@ async function listInfoDocs() {
 
       const resp = await fetch(url, { headers });
       if (!resp.ok) {
-        console.error(`[listInfoDocs] HTTP ${resp.status} on page ${pages}`);
+        const errText = await resp.text().catch(() => '');
+        console.error(`[fetchInfoDocsFromClickUp] HTTP ${resp.status} on page ${pages}: ${errText.slice(0, 200)}`);
         break;
       }
 
@@ -716,7 +780,7 @@ async function listInfoDocs() {
       }
     }
 
-    console.log(`[listInfoDocs] Fetched ${allDocs.length} docs across ${pages} pages`);
+    console.log(`[fetchInfoDocsFromClickUp] Fetched ${allDocs.length} docs across ${pages} pages`);
 
     const results = [];
     const seen = new Set();
@@ -739,10 +803,10 @@ async function listInfoDocs() {
     }
 
     results.sort((a, b) => a.name.localeCompare(b.name));
-    console.log(`[listInfoDocs] Returning ${results.length} clients:`, results.map(r => r.name).join(', '));
+    console.log(`[fetchInfoDocsFromClickUp] Found ${results.length} Info Docs:`, results.map(r => r.name).join(', '));
     return results;
   } catch (err) {
-    console.error('[listInfoDocs] error:', err.message);
+    console.error('[fetchInfoDocsFromClickUp] error:', err.message);
     return [];
   }
 }
@@ -750,6 +814,7 @@ async function listInfoDocs() {
 module.exports = {
   getOrBuildBrandProfile,
   listInfoDocs,
+  refreshInfoDocsIndex,
   findClientInfoDoc,
   readDocContent,
   appendResearchToDoc,
