@@ -1,163 +1,157 @@
 {
-  "brandOverview": "OpenSea is a multi-chain cryptocurrency trading platform and NFT marketplace positioning itself as the comprehensive hub for all onchain digital asset activity. While historically known as an NFT marketplace, they're aggressively pivoting toward token trading (cryptocurrencies like Bitcoin, Ethereum) as their primary identity with 'exchange everything' as their core message. They serve both collectors/traders and creators/brands launching drops, emphasizing no-code accessibility, creator ownership, and cross-chain functionality across 19+ blockchains.",
+  "brandOverview": "OpenSea is the world's largest cryptocurrency trading platform and digital marketplace, operating across 19 blockchain networks. While historically known as an NFT marketplace featuring collections like CryptoPunks, Bored Ape Yacht Club, and Art Blocks, the platform has strategically expanded into comprehensive token trading infrastructure. OpenSea positions itself as the 'best place to discover, trade, and create onchain' — a broad crypto exchange platform serving collectors, traders, creators, and brands entering the Web3 economy. They operate OS2, their rebuilt platform launched in 2025, emphasizing multi-chain capabilities, rewards programs, and creator-owned smart contracts.",
   "website": "https://opensea.io",
-  "industry": "Cryptocurrency trading platform and digital asset marketplace (blockchain/Web3 infrastructure)",
+  "industry": "Cryptocurrency exchange and blockchain marketplace infrastructure (multi-chain digital asset trading platform)",
   "targetAudience": {
-    "primary": "Cryptocurrency traders and digital asset collectors — individuals actively buying, selling, and swapping tokens (Bitcoin, Ethereum, altcoins) and NFTs across multiple blockchains",
-    "secondary": "Creators, artists, and brands launching token or NFT drops — often non-technical users who need no-code solutions to deploy smart contracts and manage launches",
-    "demographics": "Ages 18-45, tech-savvy early adopters, global audience with concentration in US/Europe/Asia, income varies from hobbyists to high-net-worth collectors, includes solo traders, digital artists, brand marketing teams, and Web3 developers",
-    "psychographics": "Crypto-native or crypto-curious individuals who value decentralization, digital ownership, financial sovereignty, and cultural participation in Web3. Motivated by investment/speculation opportunities, artistic expression, community belonging, and being early to emerging trends. Pain points include platform complexity, scams/rug pulls, high gas fees, and lack of trust in centralized exchanges."
+    "primary": "Cryptocurrency traders actively buying, selling, and swapping tokens across multiple chains — focused on price movement, floor prices, trending tokens with momentum, and portfolio management",
+    "secondary": "Crypto-native individuals interested in digital collectibles, Web3 technology, blockchain infrastructure, and onchain commerce",
+    "demographics": "Ages 25-45, globally distributed with concentration in US/Europe/Asia, tech-savvy professionals, income $75K+, includes individual traders, crypto investors, digital collectors, Web3 developers, and brand partnership managers at companies exploring blockchain",
+    "psychographics": "Early adopters who value decentralization, ownership, and financial sovereignty. Motivated by investment opportunities, portfolio diversification, staying ahead of crypto trends, and participating in emerging digital economies. They track floor prices obsessively, follow crypto Twitter, use Discord communities, and make data-driven trading decisions. Pain points include platform security concerns, gas fees, finding legitimate projects among scams, and navigating multi-chain complexity."
   },
   "brandVoice": {
-    "tone": "Confident, aspirational, and crypto-native without being overly technical. OpenSea writes in short, punchy sentences with active voice. They avoid corporate jargon and speak directly ('Buy with card. No crypto? No problem.'). Educational without condescension — they assume baseline Web3 familiarity but provide '101' resources for newcomers. Data-forward in their homepage (showing live floor prices, percentage changes, trading volumes) but storytelling-focused in blog content. They're trend-aware, name-dropping projects and artists without explanation, assuming their audience is plugged into the ecosystem.",
-    "personality": "Market leader that's accessible but authoritative. They position as the infrastructure layer that enables others' success ('you own the contract you deploy— not us'). Curatorial taste-maker showcasing 'featured' collections and tokens. Community-oriented with emphasis on creator empowerment. Practical problem-solvers focused on removing friction (gas efficiency, credit card purchases, no-code tools). Not flashy or hype-driven — they let the data and featured projects speak for themselves.",
+    "tone": "OpenSea communicates with data-forward precision mixed with accessible enthusiasm. Their homepage emphasizes numerical data (floor prices, percentage changes, FDV figures, chain counts) presented cleanly without hype. Blog content shifts to thoughtful, interview-based storytelling when profiling artists and projects — using phrases like 'In Conversation with' and focusing on creative philosophy. They avoid breathless hype language or get-rich-quick rhetoric. Sentences are concise and scannable. The brand sounds authoritative on blockchain technology while remaining welcoming to newcomers through educational content ('NFT 101'). They use industry terminology fluently (FDV, floor price, gas-efficient, copymint protection, allowlists) without over-explaining, signaling they respect their audience's crypto literacy.",
+    "personality": "Infrastructure-focused market leader that's confident but not flashy. OpenSea positions itself as the trusted, established platform ('synonymous with trust' per their testimonial) rather than a scrappy upstart. They're educator-adjacent — providing resources and guidance — but fundamentally commerce-focused rather than community-first. The brand is builder-centric, emphasizing tools, features, and technical capabilities ('audited smart contracts,' 'optimized Seaport contract,' 'creator-owned contracts'). They celebrate creators and artists through case studies and blog features while maintaining platform neutrality. More marketplace operator than cultural tastemaker.",
     "doNotSay": [
-      "NFT-centric language that positions OpenSea as only an NFT marketplace (avoid 'the leading NFT marketplace' — say 'exchange everything' or 'trade tokens and NFTs')",
-      "Any reference to NFTs as speculative bubbles or 'dead' — maintain optimistic forward momentum",
-      "Guarantees of profit, investment advice, or 'get rich quick' messaging",
-      "Crypto tribalism — don't pit one blockchain against another since they support 19+ chains",
-      "Technical jargon without explanation when addressing creators/brands (avoid 'ERC-721 contracts' — say 'creator-owned contracts')",
-      "Centralization language — never imply OpenSea 'controls' the market or assets",
-      "Dismissive attitudes toward traditional art, finance, or Web2 brands entering Web3"
+      "Get rich quick schemes or guarantees of returns",
+      "Hype language like 'to the moon' or 'wen lambo'",
+      "Positioning as anti-establishment or exclusively for crypto purists",
+      "Oversimplified explanations that talk down to crypto-native audiences",
+      "Claims of being 'decentralized' when they operate as a centralized platform",
+      "Exclusive focus on or promotion of NFTs as the primary product",
+      "Any content emphasizing NFT collecting, NFT culture, NFT art scenes, digital collectibles as lifestyle, PFP communities, generative art movements, or NFT drops as featured products"
     ],
     "preferredTerms": [
-      "Onchain (not 'on-chain' or 'blockchain-based')",
-      "Tokens (when referring to cryptocurrencies like Bitcoin, Ethereum)",
-      "NFTs (when specifically referring to non-fungible tokens/digital collectibles)",
-      "Floor price (standard market metric)",
-      "Minting (the act of creating/purchasing new NFTs)",
-      "Drops (NFT or token launches)",
-      "Collections (grouped NFT projects)",
-      "Web3 (the decentralized internet)",
-      "Swap (exchange one cryptocurrency for another)",
-      "Gas-efficient (low transaction fees)",
-      "Creator-owned (emphasizing decentralization)",
-      "Multi-chain / cross-chain (supporting multiple blockchains)"
+      "Onchain (not 'on-chain' or 'on the blockchain')",
+      "Token trading (primary terminology)",
+      "Floor price (not 'minimum price')",
+      "Collection (for grouped assets)",
+      "FDV (Fully Diluted Valuation)",
+      "Chains (not 'blockchains' in casual usage)",
+      "Mint/minting",
+      "Smart contract",
+      "Web3 (when referencing the broader space)",
+      "Creator-owned",
+      "Gas-efficient",
+      "Multi-chain"
     ]
   },
   "coreOfferings": {
     "products": [
-      "Token Trading — swap and trade cryptocurrencies (Bitcoin, Ethereum, altcoins) across 19 blockchains with live price tracking, FDV metrics, and trending tokens dashboard",
-      "NFT Marketplace — discover, buy, and sell NFTs across categories (art, gaming, PFPs, music, photography, memberships) with collection floor tracking and trending analysis",
-      "NFT Drop Creation Tool (OS2) — no-code platform for creators and brands to deploy smart contracts, build custom project pages, manage multi-stage allowlists, and launch NFT drops with credit card checkout",
-      "Seaport Smart Contract — OpenSea's optimized, gas-efficient, audited contract infrastructure that creators own (not OpenSea)",
-      "Creator Tools — allowlist management, storytelling page builders, multi-chain deployment options, copymint protection via Trust & Safety team",
-      "Rewards Program — quest-based system incentivizing platform engagement and trading activity"
+      "Token Trading Platform — cryptocurrency exchange functionality across 19 blockchains with real-time price tracking, trending token discovery, and swap capabilities. Primary revenue driver focused on crypto traders seeking momentum plays and portfolio management.",
+      "Digital Marketplace Infrastructure — comprehensive platform for discovering, buying, and selling digital assets with features like trending collections, floor price tracking, and collection management.",
+      "Creator Drop Tools (OS2) — no-code smart contract deployment system allowing brands and creators to launch token projects with customizable pages, multi-stage allowlists, and flexible minting options. Emphasizes creator ownership of deployed contracts.",
+      "Multi-Chain Trading — unified interface for transacting across Ethereum, Polygon, Arbitrum, Optimism, Base, Avalanche, BNB Chain, and 12+ additional networks.",
+      "Rewards Program — quest-based incentive system launched with OS2 to drive platform engagement and trading volume.",
+      "Trust & Safety Infrastructure — automated copymint protection, content moderation systems, and security features positioning OpenSea as the safer alternative to competitor exchanges."
     ],
-    "valueProposition": "The most comprehensive, trusted, and accessible platform for trading all onchain assets — whether you're swapping tokens or discovering NFTs — with creator-first tools that let anyone launch Web3 projects without code, while maintaining true ownership and security.",
+    "valueProposition": "OpenSea is the most established, highest-volume crypto marketplace with the broadest multi-chain support and strongest trust infrastructure. Unlike niche exchanges or single-chain platforms, OpenSea offers 'everything onchain' — comprehensive token trading, proven security through audited contracts, and creator tools that let you own what you deploy. For traders: deepest liquidity and trend data. For creators/brands: fastest path to launch with institutional-grade infrastructure. For everyone: the trusted platform with the longest track record.",
     "keyBenefits": [
-      "Multi-chain support (19+ blockchains) — trade anywhere without being locked to one ecosystem",
-      "No-code creation — launch NFT drops without technical skills or hiring developers",
-      "Creator ownership — you own your smart contract, not the platform",
-      "Fiat onramp — buy with credit/debit card, no crypto wallet required initially",
-      "Security and trust — audited contracts, automated copymint protection, dedicated Trust & Safety team",
-      "Largest marketplace liquidity — highest trading volumes and most comprehensive asset selection",
-      "Gas-efficient contracts — lower transaction fees than competitors"
+      "Highest liquidity and trading volume in the digital asset marketplace space",
+      "19-chain support eliminates need for multiple platform accounts",
+      "Audited smart contracts and automated security reduce scam exposure",
+      "Creator-owned contracts (not platform custody) when using drop tools",
+      "No technical skills required to deploy and manage token projects",
+      "Credit/debit card purchasing removes crypto onboarding friction",
+      "Real-time trend data and floor price tracking for informed trading decisions",
+      "Established brand with multi-year track record ('synonymous with trust')"
     ],
-    "pricingTier": "Freemium/marketplace model — platform is free to use for discovery and trading; OpenSea takes marketplace fees on secondary sales (typically 2.5%); drop creation tools are free but require gas fees for contract deployment. Premium tier: they serve high-touch enterprise clients (brands, major artists) with white-glove partnership services."
+    "pricingTier": "Freemium with transaction fees — OpenSea operates on a commission model charging percentage fees on trades/swaps rather than upfront platform fees. Gas fees are variable based on blockchain. Creator drop tools are no-code and free to deploy, with OpenSea earning through subsequent trading volume. This is mid-range for crypto exchanges (not budget like some DEXs, not premium subscription model). Revenue scales with volume."
   },
   "competitors": [
     {
-      "name": "Coinbase (for token trading)",
-      "differentiator": "OpenSea combines token trading with NFT marketplace in one platform, whereas Coinbase is purely a crypto exchange. OpenSea is multi-chain by default while Coinbase has limited chain support."
+      "name": "Blur",
+      "differentiator": "OpenSea emphasizes trust, safety infrastructure, and creator tools over Blur's trader-first, aggressive loyalty incentive approach. OpenSea serves broader audiences including brands and newcomers, not just pro traders."
     },
     {
-      "name": "Blur (NFT marketplace)",
-      "differentiator": "OpenSea emphasizes accessibility and creator tools, while Blur targets pro traders with zero marketplace fees and airdrop incentives. OpenSea is brand-friendly and curatorial; Blur is volume-focused."
+      "name": "Magic Eden",
+      "differentiator": "OpenSea offers significantly broader chain support (19 vs Magic Eden's focus on Solana/Ethereum/Polygon) and more established institutional partnerships for brand launches."
     },
     {
-      "name": "Magic Eden (NFT marketplace)",
-      "differentiator": "OpenSea has broader chain support and more established brand trust. Magic Eden initially focused on Solana NFTs while OpenSea was Ethereum-first. OpenSea offers more robust creator tools and partnership infrastructure."
+      "name": "Rarible",
+      "differentiator": "OpenSea provides superior liquidity, professional creator infrastructure, and enterprise-grade security rather than community governance or decentralization narratives."
     },
     {
-      "name": "Uniswap (token swapping)",
-      "differentiator": "Uniswap is a decentralized exchange (DEX) protocol for token swaps only. OpenSea is a user-friendly platform combining token swaps with NFT trading and creator tools — more comprehensive and accessible to non-DeFi natives."
-    },
-    {
-      "name": "Foundation, SuperRare (curated NFT platforms)",
-      "differentiator": "OpenSea is open and permissionless — anyone can list. Foundation and SuperRare are invite-only, high-art focused. OpenSea serves mass market and all genres; competitors serve elite art collectors."
+      "name": "Uniswap / DEXs",
+      "differentiator": "OpenSea combines token swapping with full marketplace features, creator tools, curated discovery, and fraud protection — not just pure DeFi swapping."
     }
   ],
-  "competitiveDifferentiators": "OpenSea's 'exchange everything' positioning — they're the only major platform attempting to be the single destination for all onchain assets (tokens + NFTs) across the most chains (19+). Their creator-owned smart contract model puts ownership in creators' hands, differentiating from platforms that control the infrastructure. No-code drop tools democratize Web3 creation for non-technical users. Longest track record and brand trust in the NFT space (since 2017) with the highest historical trading volume. Built-in fiat onramp removes crypto wallet barriers for mainstream adoption. Audited, gas-efficient Seaport contracts provide security and cost advantages. Partnership infrastructure for brands (white-glove service, custom solutions) that competitors lack.",
+  "competitiveDifferentiators": "OpenSea's genuine differentiator is being the established market leader with proven multi-year track record when most competitors are newer or niche. They offer the widest chain compatibility (19 networks vs competitors' 3-5), giving traders and creators a single platform for everything. The creator-owned smart contract model — where brands deploy and own their contracts rather than using OpenSea's — is technically superior for serious projects. Their Trust & Safety infrastructure (automated copymint detection, content moderation team, security audits) addresses the scam-plagued reputation of crypto marketplaces. Finally, their brand partnerships and enterprise creator tools position them as the go-to platform for traditional companies entering Web3, not just crypto natives.",
   "contentThemes": {
     "onBrandTopics": [
-      "How to trade cryptocurrencies across multiple blockchains",
-      "Cryptocurrency market analysis and trending token insights",
-      "Step-by-step guides for swapping tokens on OpenSea",
-      "NFT collecting strategies and floor price analysis",
-      "How to launch an NFT drop without coding",
-      "Multi-chain trading advantages and blockchain comparisons",
-      "Smart contract security and creator ownership",
-      "Web3 safety and avoiding scams in crypto trading",
-      "Artist and creator success stories on OpenSea",
-      "Fiat onramp solutions for buying crypto with credit cards",
-      "Gas fee optimization for blockchain transactions",
-      "Emerging crypto trends and token discovery",
-      "NFT use cases beyond art (gaming, memberships, music, photography)",
-      "Brand case studies entering Web3 via OpenSea",
-      "Decentralization philosophy and why creator ownership matters"
+      "Cryptocurrency trading strategies and token analysis",
+      "Multi-chain blockchain technology and interoperability",
+      "Smart contract security and auditing best practices",
+      "Web3 infrastructure and onchain commerce trends",
+      "Token launch strategies for brands and creators",
+      "Crypto portfolio management and trend tracking",
+      "Blockchain scalability and gas optimization",
+      "Decentralized finance (DeFi) integrations and token swapping",
+      "Cryptocurrency market analysis and floor price dynamics",
+      "Enterprise blockchain adoption and brand Web3 strategies",
+      "Crypto wallet security and user safety",
+      "Token economics and fully diluted valuation (FDV)",
+      "Cross-chain bridges and multi-chain trading",
+      "Smart contract deployment and ownership models"
     ],
     "adjacentTopics": [
-      "Broader cryptocurrency market trends and Bitcoin/Ethereum analysis",
-      "Blockchain technology explainers and proof-of-stake vs proof-of-work",
-      "DeFi (decentralized finance) ecosystem trends affecting token trading",
-      "Digital art movements and generative art",
-      "Web3 social platforms and community building",
-      "Metaverse and virtual world integrations",
-      "DAO governance and community-owned projects",
-      "Creator economy trends and platform economics",
-      "Crypto regulations and policy developments",
-      "Layer 2 scaling solutions and blockchain infrastructure",
-      "Cross-chain bridges and interoperability",
-      "NFT utility in gaming and entertainment",
-      "Brand marketing strategies in Web3",
-      "Crypto wallet security and self-custody best practices"
+      "Broader cryptocurrency market trends and regulatory news",
+      "Blockchain developer tools and APIs",
+      "Web3 identity and wallet technology",
+      "Crypto payment infrastructure and card integration",
+      "Digital ownership and property rights in blockchain",
+      "Ethereum and Layer 2 scaling solutions",
+      "Brand innovation in emerging technologies",
+      "Fintech trends and digital asset adoption",
+      "Creator economy and monetization platforms",
+      "Cybersecurity in financial technology"
     ],
     "offLimitTopics": [
-      "NFT speculation as 'dead' or 'over' — undermines their marketplace",
-      "Explicit investment or financial advice on specific tokens/NFTs (regulatory risk)",
-      "Promoting centralized exchanges or custodial wallets that compete with Web3 ethos",
-      "FUD (fear, uncertainty, doubt) about blockchain technology or crypto's future",
-      "Controversial crypto figures or projects involved in scams/fraud without careful framing",
-      "Maximalist takes on any single blockchain (they support 19 chains)",
-      "Environmental FUD about proof-of-work without acknowledging proof-of-stake solutions",
-      "Traditional finance as 'better' than decentralized alternatives",
-      "Dismissing newcomers or 'normies' — they're trying to onboard mainstream users",
-      "Complex smart contract code or technical implementations without translation",
-      "NFT right-click-save criticism without nuanced response",
-      "Pump-and-dump schemes, rug pulls, or get-rich-quick crypto narratives",
-      "Competitor bashing — maintain high road as market leader"
+      "NFTs, NFT trading, NFT collections, NFT culture, NFT art scenes",
+      "Digital collectibles positioning or collectibles-focused content",
+      "PFP (profile picture) projects and communities",
+      "Generative art movements and Art Blocks-style content",
+      "NFT drops, NFT minting guides, NFT launch strategies",
+      "Celebrity NFT projects or influencer collectibles",
+      "Metaverse real estate or virtual world assets",
+      "Gaming NFTs or play-to-earn mechanics",
+      "Music NFTs or photography NFTs as collectibles",
+      "NFT floor price speculation or collection hype",
+      "Community-first NFT projects or holder utility narratives",
+      "Anything framing OpenSea primarily as an NFT marketplace",
+      "Get-rich-quick investment advice or return guarantees",
+      "Anti-regulatory or maximalist crypto ideology",
+      "Promotes competitors or alternative marketplaces",
+      "Overly technical blockchain minutiae without practical application",
+      "Casino/gambling analogies for trading",
+      "Environmental FUD about blockchain energy usage (address thoughtfully if necessary)"
     ]
   },
   "keyMessages": [
-    "OpenSea, exchange everything — token trading and NFT marketplace",
-    "Welcome to the best place to discover, trade, and create onchain",
-    "You own the contract you deploy — not us (creator ownership emphasis)",
-    "No crypto? No problem (fiat onramp accessibility)",
-    "Build confidently, build fast, build anywhere (creator empowerment)",
-    "The world's biggest NFT marketplace (market leadership)",
-    "Launch on the world's biggest marketplace (creator call-to-action)",
-    "No code necessary (accessibility for non-technical users)",
-    "Trust & Safety team and automated copymint protection (security)",
-    "Multi-chain support across 19 blockchains (interoperability)"
+    "OpenSea, exchange everything — the tagline emphasizing comprehensive token trading across all asset types",
+    "The best place to discover, trade, and create onchain",
+    "Build confidently / Build fast / Build anywhere — creator-focused messaging for drop tools",
+    "Synonymous with trust — third-party testimonial positioning core to brand identity",
+    "Creator-owned contracts — emphasizing ownership model vs platform custody",
+    "Token trading across 19 chains — multi-chain capability as differentiator",
+    "Launch on the world's biggest marketplace — market leader positioning"
   ],
   "websiteInsights": {
-    "contentStyle": "Extremely concise, scan-friendly writing with heavy use of fragments and short sentences (often 5-10 words). Bullet lists and feature grids dominate over paragraphs. Data-forward on trading pages (live floor prices, percentage changes, token FDVs update dynamically). Blog content is longer-form but still conversational with subheadings every 2-3 paragraphs. Interviews and case studies use Q&A format. Minimal metaphors or flowery language — direct and functional. They lead with benefits/outcomes, not features ('Build confidently' before explaining audited contracts). Heavy use of present tense and active voice ('Launch your project,' 'Buy with card'). Assume reader familiarity with crypto terminology in body copy but provide 'NFT 101' educational sections for beginners.",
-    "ctaPatterns": "Action-oriented verbs in all CTAs: 'View all,' 'Get started,' 'Launch,' 'Build,' 'Read docs,' 'Join our newsletter,' 'Partner with us.' Never 'Learn more' or 'Click here.' CTAs are prominent, above-the-fold, and repeat throughout pages. Use contrasting button colors (bright blue/purple against dark backgrounds). Urgency through social proof ('Trending tokens,' 'Minting now,' 'Highest sales in the past hour') rather than countdown timers. Educational CTAs frame as benefit ('Learn how to buy an NFT') not command.",
-    "socialProof": "Extensive use of live market data as implicit social proof (floor prices, trading volumes, trending collections). Featured collections and 'curated' labels imply editorial endorsement. Case studies highlight recognizable creator names (Beeple, CryptoPunks, Art Blocks) and brands. Testimonials on partner pages use founder names and company names, not anonymous quotes. Blog features 'In Conversation With' interview series with NFT artists/founders. Numbers are emphasized ('19 chains,' '10,000 items,' '79.7K ETH volume'). Join dates on profiles build credibility through longevity ('Joined Oct 2021').",
+    "contentStyle": "Homepage is data-dense with minimal prose — floor prices, percentage changes, FDV figures, and numerical metrics dominate. Uses short labels and scannable lists rather than explanatory paragraphs. Blog content shifts dramatically: long-form interview pieces with artists/creators using 'In Conversation with [Name]' format, philosophical discussions about art and technology, feature stories about projects. Educational content ('NFT 101') uses clear, concise explainers. Overall: numbers-first on commercial pages, narrative-driven on editorial pages, always concise.",
+    "ctaPatterns": "CTAs are action-oriented and immediate: 'Get started,' 'Launch,' 'View all,' 'Learn,' 'Sign up,' 'Read docs.' No aggressive urgency language ('Act now!' or countdown timers). Partner pages use 'Partner with us' and 'Build confidently/fast/anywhere' — aspirational but not pushy. Navigation emphasis on 'Discover,' 'Trade,' 'Create' reflects core user actions. Minimal friction — CTAs assume crypto literacy and don't over-explain next steps.",
+    "socialProof": "Heavy use of creator/project testimonials (Jeremy Fall quote: 'synonymous with trust'). Homepage showcases trending collections and top movers with real-time data as implicit social proof (activity = legitimacy). Case studies section ('Probably Nothing,' 'Invisible Friends') demonstrates successful launches. Blog features high-profile artists (Sebastião Salgado, Emily Xie, Casey Reas) to signal cultural credibility. Partners page lists recognizable brands. Social proof is results-driven (volume numbers, floor prices, featured creators) rather than user review based.",
     "mainPages": [
-      "Homepage — dynamic grid of trending tokens, NFT collections, floor prices, featured drops",
-      "Token Trading — dedicated section for cryptocurrency swaps with FDV, momentum metrics",
-      "NFT Marketplace — browse collections by category (Art, Gaming, PFPs, Music, etc.)",
-      "Drop Creation Tool (Partners page) — pitch to creators and brands with feature callouts",
-      "Blog — news digest ('Currents'), artist interviews, case studies, announcements",
-      "Help Center — self-service articles on getting started, buying/selling, account management",
-      "User Profiles — public wallet views showing holdings, NFTs, tokens, USD value",
-      "NFT 101 — educational hub with explainers for beginners"
+      "Homepage — trending tokens, floor prices, featured collections, discovery interface",
+      "Token Trading — swap functionality and trending token lists",
+      "Collections — browsing interface for digital asset collections",
+      "Drops — upcoming and live token launches",
+      "Blog — editorial content with creator interviews, industry news, platform announcements",
+      "Partner/Creator Tools — information about launching drops using OpenSea infrastructure",
+      "Help Center — educational resources and support documentation",
+      "User Profile Pages — portfolio tracking and holdings display"
     ]
   },
-  "industryContext": "The cryptocurrency and NFT markets are in a maturation phase post-2021/2022 boom, with platforms consolidating around trusted infrastructure and multi-chain interoperability. NFT trading volumes have declined from peak hype, forcing marketplaces to diversify (hence OpenSea's aggressive push into token trading with 'exchange everything' positioning). Competition is fierce from specialized players (Blur for pro NFT traders, Coinbase for crypto exchanges), challenger platforms (Magic Eden), and decentralized protocols (Uniswap). Regulatory scrutiny is increasing, making trust, security, and compliance differentiators. The industry is shifting from speculation-driven narratives to utility-focused applications (gaming NFTs, token-gated memberships, creator economies), and mainstream adoption depends on reducing technical barriers (fiat onramps, no-code tools) that OpenSea is emphasizing.",
-  "clientName": "open sea",
-  "cachedAt": "2026-03-09T11:46:18.609Z",
+  "industryContext": "The cryptocurrency exchange and digital marketplace sector is intensely competitive and rapidly consolidating as platforms race to offer multi-chain support and institutional-grade security. Following the 2021-2023 volatility and high-profile crypto collapses, trust and regulatory compliance have become critical differentiators — users now prioritize platform stability over novelty. The market is bifurcating: niche DEXs serve crypto-native power users seeking decentralization, while established platforms like OpenSea compete for mainstream adoption by brands, creators, and traditional finance entrants. Multi-chain interoperability and Layer 2 scaling solutions are shifting from competitive advantages to baseline requirements. The industry is maturing from speculative frenzy toward infrastructure-focused utility, with winners being platforms that successfully balance crypto-native credibility with accessibility for newcomers and institutional partners.",
+  "clientName": "Open Sea",
+  "cachedAt": "2026-03-09T17:15:41.519Z",
   "cacheKey": "open-sea"
 }
