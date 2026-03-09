@@ -52,7 +52,9 @@ async function findClientInfoDoc(clientName) {
   }
 
   const clientLower = clientName.toLowerCase().trim();
-  console.log(`[findClientInfoDoc] Looking for Info Doc for client: "${clientName}"`);
+  // Also create a no-space version for matching (e.g., "open sea" → "opensea")
+  const clientNoSpaces = clientLower.replace(/\s+/g, '');
+  console.log(`[findClientInfoDoc] Looking for Info Doc for client: "${clientName}" (also trying: "${clientNoSpaces}")`);
 
   try {
     const resp = await fetch(`https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs`, {
@@ -70,10 +72,21 @@ async function findClientInfoDoc(clientName) {
     const docs = data.docs || data.results || data.data || [];
     console.log(`[findClientInfoDoc] Got ${docs.length} docs, searching for "${clientLower}"`);
 
+    // Helper: check if two names match (handles spaces, e.g., "open sea" matches "opensea")
+    function namesMatch(docNameLower, searchLower) {
+      if (docNameLower.includes(searchLower)) return true;
+      // Try without spaces: "opensea" includes "opensea"
+      const docNoSpaces = docNameLower.replace(/\s+/g, '');
+      const searchNoSpaces = searchLower.replace(/\s+/g, '');
+      if (docNoSpaces.includes(searchNoSpaces)) return true;
+      if (searchNoSpaces.includes(docNoSpaces)) return true;
+      return false;
+    }
+
     for (const doc of docs) {
       const docName = (doc.name || doc.title || '').toLowerCase();
       if (!/(info|client info)/i.test(docName)) continue;
-      if (docName.includes(clientLower)) {
+      if (namesMatch(docName, clientLower)) {
         const docId = doc.id || doc.doc_id;
         console.log(`[findClientInfoDoc] Found match: "${doc.name}" (ID: ${docId})`);
         return { docId, docName: doc.name || doc.title };
@@ -84,7 +97,7 @@ async function findClientInfoDoc(clientName) {
       const docName = (doc.name || doc.title || '').toLowerCase();
       if (!/(info|client info)/i.test(docName)) continue;
       const extractedName = docName.replace(/\s*(client\s+)?info(\s+doc)?$/i, '').trim();
-      if (extractedName.includes(clientLower) || clientLower.includes(extractedName)) {
+      if (namesMatch(extractedName, clientLower)) {
         const docId = doc.id || doc.doc_id;
         console.log(`[findClientInfoDoc] Partial match: "${doc.name}" (ID: ${docId})`);
         return { docId, docName: doc.name || doc.title };
@@ -378,11 +391,24 @@ async function runDeepResearch(clientName, existingDocContent, websiteUrl, progr
 
   if (progressCallback) await progressCallback(`Analyzing ${crawledPages.length} pages + Client Info Doc...`);
 
-  const enrichmentNotes = options.enrichmentNotes
-    ? `\n\nENRICHMENT NOTES FROM TEAM:\n${options.enrichmentNotes}\nUse these notes to guide your research focus. They may indicate strategic pivots, areas of emphasis, or topics to explore deeper.`
+  const hasNotes = !!(options.enrichmentNotes && options.enrichmentNotes.trim());
+
+  const directivesBlock = hasNotes
+    ? `
+
+━━━ TEAM DIRECTIVES (MANDATORY — OVERRIDE EVERYTHING) ━━━
+${options.enrichmentNotes}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CRITICAL: The directives above are HARD CONSTRAINTS from the team. They represent the client's CURRENT strategic direction.
+- If the directives say to FOCUS on certain topics → the entire profile must be framed around those topics.
+- If the directives say to AVOID or NOT MENTION certain topics → those topics must be COMPLETELY EXCLUDED from every section of the profile. Do not list them in products, do not mention them in brand overview, do not include them in content themes, do not reference them in key messages. Act as if those topics DO NOT EXIST for this brand.
+- The website may contain content about avoided topics — IGNORE IT. The team knows the brand better than the website reflects.
+- This is not a suggestion. Violating these directives makes the entire profile useless.`
     : '';
 
   const systemPrompt = `You are a Brand Research Specialist at AEO Labs (AI SEO agency). Your job is to conduct deep brand research and compile a comprehensive client profile.
+${directivesBlock}
 
 This profile will be THE source of truth for:
 - Future content creation bots (so they write in the right voice)
@@ -395,7 +421,6 @@ You must be THOROUGH and OPINIONATED. A vague profile is useless.
 Data sources:
 1. Client Info Doc — their answers about their business (onboarding questionnaire)
 2. Website content — crawled pages from their actual site
-${enrichmentNotes}
 
 OUTPUT — valid JSON only, no markdown fences:
 {
@@ -439,13 +464,14 @@ OUTPUT — valid JSON only, no markdown fences:
 
 RULES:
 1. Be specific and opinionated. "Professional tone" = useless. Say exactly HOW they sound with examples.
-2. For doNotSay — what would make their audience cringe? What's off-brand?
+2. For doNotSay — what would make their audience cringe? What's off-brand? ALSO include any topics from team directives.
 3. Only list competitors you can actually identify from the content.
 4. Adjacent topics = what industry publications cover that overlaps with this brand's audience.
-5. Off-limit topics = what would damage their credibility or confuse their positioning.
-6. If the Info Doc mentions priorities or topics to avoid, those take highest priority.
+5. Off-limit topics = what would damage their credibility or confuse their positioning. ALWAYS include avoided topics from team directives here.
+6. TEAM DIRECTIVES OVERRIDE WEBSITE DATA. If the team says "do not mention X" but the website talks about X extensively, you EXCLUDE X from the profile entirely. The team's word is final.
 7. Cross-reference the Info Doc answers with the website — note any discrepancies.
-8. The profile should be detailed enough that someone who has NEVER heard of this brand can write content for them.`;
+8. The profile should be detailed enough that someone who has NEVER heard of this brand can write content for them.
+9. Before finalizing, re-read the team directives (if any) and verify EVERY section of your output complies. If an avoided topic appears anywhere, remove it.`;
 
   const userContent = `Research this client thoroughly:
 
@@ -596,13 +622,18 @@ async function getOrBuildBrandProfile(clientName, websiteUrl, progressCallback, 
   // Append research to the existing doc page
   let savedToDoc = false;
   if (docInfo && mainPageId) {
+    console.log(`[getOrBuildBrandProfile] Saving research to ClickUp doc ${docInfo.docId}, page ${mainPageId}`);
     if (progressCallback) await progressCallback('Saving research to Client Info Doc...');
     const appendResult = await appendResearchToDoc(docInfo.docId, mainPageId, clientName, research);
     savedToDoc = !!appendResult;
-    if (!savedToDoc) {
+    if (savedToDoc) {
+      console.log(`[getOrBuildBrandProfile] Successfully saved research to ClickUp`);
+    } else {
       console.error(`[getOrBuildBrandProfile] Failed to append research to doc ${docInfo.docId}`);
       if (progressCallback) await progressCallback('⚠️ Research complete but failed to save to ClickUp. Caching in GitHub...');
     }
+  } else {
+    console.log(`[getOrBuildBrandProfile] No ClickUp doc to save to (docInfo: ${!!docInfo}, mainPageId: ${mainPageId})`);
   }
 
   // Cache in GitHub
