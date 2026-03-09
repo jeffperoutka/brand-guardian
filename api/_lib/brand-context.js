@@ -119,18 +119,28 @@ async function findClientInfoDoc(clientName) {
 }
 
 async function readDocContent(docId) {
-  const workspaceId = process.env.CLICKUP_WORKSPACE_ID;
+  const workspaceId = (process.env.CLICKUP_WORKSPACE_ID || '').trim();
+  const token = (process.env.CLICKUP_API_TOKEN || '').trim();
   console.log(`[readDocContent] Reading doc ${docId} in workspace ${workspaceId}`);
 
-  const pagesResp = await fetch(
-    `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs/${docId}/pages`,
-    { headers: { 'Authorization': process.env.CLICKUP_API_TOKEN } }
-  );
+  // Retry once on failure (handles transient 401s / rate limits)
+  let pagesResp;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    pagesResp = await fetch(
+      `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs/${docId}/pages`,
+      { headers: { 'Authorization': token } }
+    );
+    if (pagesResp.ok) break;
+    if (attempt === 0) {
+      console.log(`[readDocContent] Attempt 1 failed (HTTP ${pagesResp.status}), retrying in 2s...`);
+      await new Promise(r => setTimeout(r, 2000));
+    }
+  }
 
   if (!pagesResp.ok) {
     const errText = await pagesResp.text().catch(() => '');
     console.error(`[readDocContent] ClickUp pages HTTP ${pagesResp.status}: ${errText.slice(0, 300)}`);
-    return { content: '', pageId: null, pages: [] };
+    return { content: '', pageId: null, pages: [], error: `ClickUp API returned HTTP ${pagesResp.status}` };
   }
 
   const pagesData = await pagesResp.json();
@@ -144,7 +154,7 @@ async function readDocContent(docId) {
     try {
       const pageResp = await fetch(
         `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs/${docId}/pages/${page.id}?content_format=text/md`,
-        { headers: { 'Authorization': process.env.CLICKUP_API_TOKEN } }
+        { headers: { 'Authorization': token } }
       );
       if (!pageResp.ok) continue;
       const pageData = await pageResp.json();
@@ -165,7 +175,7 @@ async function readDocContent(docId) {
 }
 
 async function appendResearchToDoc(docId, pageId, clientName, research) {
-  const workspaceId = process.env.CLICKUP_WORKSPACE_ID;
+  const workspaceId = (process.env.CLICKUP_WORKSPACE_ID || '').trim();
 
   const researchMarkdown = `
 
@@ -625,10 +635,10 @@ async function getOrBuildBrandProfile(clientName, websiteUrl, progressCallback, 
   if (!websiteUrl && !fullContent) {
     const debugInfo = options.docId ? ` (docId=${options.docId}, readDocContent returned empty)` : ' (no docId provided, findClientInfoDoc returned null)';
     console.error(`[getOrBuildBrandProfile] No content and no URL for "${clientName}"${debugInfo}`);
-    return {
-      profile: null, source: 'none',
-      error: `Could not find a Client Info Doc for "${clientName}" in ClickUp and no website URL was provided.`,
-    };
+    const errorDetail = options.docId
+      ? `Found the Info Doc (ID: ${options.docId}) but ClickUp API failed to return its content. This is usually a transient ClickUp API issue — please try again in a minute. Alternatively, provide a website URL to run enrichment without the doc.`
+      : `Could not find a Client Info Doc for "${clientName}" in ClickUp and no website URL was provided.`;
+    return { profile: null, source: 'none', error: errorDetail };
   }
 
   // Run deep research
