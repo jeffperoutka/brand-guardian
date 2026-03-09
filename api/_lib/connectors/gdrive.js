@@ -12,7 +12,7 @@ const crypto = require('crypto');
 
 // ── JWT / OAuth2 for Service Account ──
 
-function buildJWT(email, privateKey, scopes) {
+function buildJWT(email, privateKey, scopes, impersonateEmail) {
   const now = Math.floor(Date.now() / 1000);
   const header = { alg: 'RS256', typ: 'JWT' };
   const payload = {
@@ -21,6 +21,7 @@ function buildJWT(email, privateKey, scopes) {
     aud: 'https://oauth2.googleapis.com/token',
     iat: now,
     exp: now + 3600,
+    ...(impersonateEmail ? { sub: impersonateEmail } : {}),
   };
 
   const encode = (obj) => Buffer.from(JSON.stringify(obj)).toString('base64url');
@@ -49,10 +50,13 @@ async function getAccessToken() {
   // Vercel env vars encode \n as literal backslash-n — restore them
   const privateKey = rawKey.replace(/\\n/g, '\n');
 
+  // Impersonate a real user so files count against their storage, not the service account's
+  const impersonateEmail = (process.env.GOOGLE_IMPERSONATE_EMAIL || '').trim() || null;
+
   const jwt = buildJWT(email, privateKey, [
     'https://www.googleapis.com/auth/drive',
     'https://www.googleapis.com/auth/documents',
-  ]);
+  ], impersonateEmail);
 
   const resp = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
