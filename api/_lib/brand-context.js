@@ -64,46 +64,53 @@ async function findClientInfoDoc(clientName) {
   }
 
   try {
-    // Use search API — confirmed to return correct doc IDs
-    const resp = await fetch(`https://api.clickup.com/api/v3/workspaces/${workspaceId}/search`, {
-      method: 'POST',
-      headers: { 'Authorization': token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: `${clientName} Info Doc`, types: ['doc'], limit: 20 }),
-    });
+    // Paginate through all docs (same approach as listInfoDocs)
+    const headers = { 'Authorization': token, 'Content-Type': 'application/json' };
+    let nextCursor = undefined;
+    let pages = 0;
 
-    if (!resp.ok) {
-      const errText = await resp.text().catch(() => 'unknown');
-      console.error(`[findClientInfoDoc] Search API HTTP ${resp.status}: ${errText.slice(0, 200)}`);
-      return null;
-    }
+    while (pages < 15) {
+      const url = nextCursor
+        ? `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs?cursor=${nextCursor}`
+        : `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs`;
 
-    const data = await resp.json();
-    const docs = data.results || [];
-    console.log(`[findClientInfoDoc] Search returned ${docs.length} results`);
+      const resp = await fetch(url, { headers });
+      if (!resp.ok) {
+        console.error(`[findClientInfoDoc] HTTP ${resp.status} on page ${pages}`);
+        break;
+      }
 
-    for (const doc of docs) {
-      if (doc.type !== 'doc') continue;
-      const docName = (doc.name || '').toLowerCase();
-      if (!/(info|client info)/i.test(docName)) continue;
-      if (namesMatch(docName, clientLower)) {
-        console.log(`[findClientInfoDoc] Match: "${doc.name}" (ID: ${doc.id})`);
-        return { docId: doc.id, docName: doc.name };
+      const data = await resp.json();
+      const docs = data.docs || [];
+      pages++;
+
+      // Check each doc on this page for a match
+      for (const doc of docs) {
+        const docId = doc.id || doc.doc_id;
+        const docName = (doc.name || '').toLowerCase();
+        if (!/(info|client info)/i.test(docName)) continue;
+        if (/template/i.test(docName) || /definitions/i.test(docName)) continue;
+
+        if (namesMatch(docName, clientLower)) {
+          console.log(`[findClientInfoDoc] Match: "${doc.name}" (ID: ${docId})`);
+          return { docId, docName: doc.name };
+        }
+
+        const extractedName = docName.replace(/\s*(client\s+)?info(\s+doc)?s?$/i, '').trim();
+        if (namesMatch(extractedName, clientLower)) {
+          console.log(`[findClientInfoDoc] Partial match: "${doc.name}" (ID: ${docId})`);
+          return { docId, docName: doc.name };
+        }
+      }
+
+      if (data.next_cursor) {
+        nextCursor = data.next_cursor;
+      } else {
+        break;
       }
     }
 
-    // Also try partial match on extracted name
-    for (const doc of docs) {
-      if (doc.type !== 'doc') continue;
-      const docName = (doc.name || '').toLowerCase();
-      if (!/(info|client info)/i.test(docName)) continue;
-      const extractedName = docName.replace(/\s*(client\s+)?info(\s+doc)?s?$/i, '').trim();
-      if (namesMatch(extractedName, clientLower)) {
-        console.log(`[findClientInfoDoc] Partial match: "${doc.name}" (ID: ${doc.id})`);
-        return { docId: doc.id, docName: doc.name };
-      }
-    }
-
-    console.log(`[findClientInfoDoc] No Info Doc found for "${clientName}"`);
+    console.log(`[findClientInfoDoc] No Info Doc found for "${clientName}" after ${pages} pages`);
     return null;
   } catch (err) {
     console.error(`[findClientInfoDoc] Error:`, err.message);
@@ -680,77 +687,64 @@ async function listInfoDocs() {
 
   const headers = { 'Authorization': token, 'Content-Type': 'application/json' };
 
-  // docs-list first — works with personal API tokens for populating dropdown
-  // search API as fallback (may require OAuth)
-  const approaches = [
-    {
-      name: 'v3-docs-list',
-      url: `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs`,
-      method: 'GET',
-      extractDocs: (data) => data.docs || data.results || data.data || [],
-    },
-    {
-      name: 'v3-search',
-      url: `https://api.clickup.com/api/v3/workspaces/${workspaceId}/search`,
-      method: 'POST',
-      body: JSON.stringify({ query: 'Client Info Doc', types: ['doc'], limit: 50 }),
-      extractDocs: (data) => data.results || [],
-    },
-  ];
+  try {
+    // Paginate through all docs — Info Docs may be on later pages
+    let allDocs = [];
+    let nextCursor = undefined;
+    let pages = 0;
 
-  for (const approach of approaches) {
-    try {
-      console.log(`[listInfoDocs] Trying ${approach.name}: ${approach.method} ${approach.url}`);
+    while (pages < 15) {
+      const url = nextCursor
+        ? `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs?cursor=${nextCursor}`
+        : `https://api.clickup.com/api/v3/workspaces/${workspaceId}/docs`;
 
-      const fetchOpts = { method: approach.method, headers };
-      if (approach.body) fetchOpts.body = approach.body;
-
-      const resp = await fetch(approach.url, fetchOpts);
-
+      const resp = await fetch(url, { headers });
       if (!resp.ok) {
-        const errBody = await resp.text().catch(() => 'unknown');
-        console.log(`[listInfoDocs] ${approach.name} — HTTP ${resp.status}: ${errBody.slice(0, 200)}`);
-        continue;
+        console.error(`[listInfoDocs] HTTP ${resp.status} on page ${pages}`);
+        break;
       }
 
       const data = await resp.json();
-      const docs = approach.extractDocs(data);
-      console.log(`[listInfoDocs] ${approach.name} — ${docs.length} docs found`);
+      const docs = data.docs || [];
+      allDocs.push(...docs);
+      pages++;
 
-      if (docs.length === 0) continue;
-
-      const results = [];
-      const seen = new Set();
-
-      for (const doc of docs) {
-        const docId = doc.id || doc.doc_id;
-        if (!docId || seen.has(docId)) continue;
-        // Skip non-doc results from search API
-        if (doc.type && doc.type !== 'doc') continue;
-        seen.add(docId);
-
-        const docName = doc.name || doc.title || '';
-        if (!/(info|client info)/i.test(docName)) continue;
-        if (/template/i.test(docName)) continue;
-        if (/definitions/i.test(docName)) continue;
-        if (/^sprint\s+\d/i.test(docName)) continue;
-
-        const name = docName.replace(/\s*(client\s+)?info(\s+doc)?s?$/i, '').trim();
-        if (name) {
-          results.push({ name, docId, docName });
-        }
+      if (data.next_cursor) {
+        nextCursor = data.next_cursor;
+      } else {
+        break;
       }
-
-      results.sort((a, b) => a.name.localeCompare(b.name));
-      console.log(`[listInfoDocs] Returning ${results.length} clients:`, results.map(r => `${r.name}(${r.docId})`).join(', '));
-      return results;
-    } catch (err) {
-      console.error(`[listInfoDocs] ${approach.name} error:`, err.message);
     }
-  }
 
-  console.error('[listInfoDocs] All approaches failed');
-  return [];
+    console.log(`[listInfoDocs] Fetched ${allDocs.length} docs across ${pages} pages`);
+
+    const results = [];
+    const seen = new Set();
+
+    for (const doc of allDocs) {
+      const docId = doc.id || doc.doc_id;
+      if (!docId || seen.has(docId)) continue;
+      seen.add(docId);
+
+      const docName = doc.name || doc.title || '';
+      if (!/(info|client info)/i.test(docName)) continue;
+      if (/template/i.test(docName)) continue;
+      if (/definitions/i.test(docName)) continue;
+      if (/^sprint\s+\d/i.test(docName)) continue;
+
+      const name = docName.replace(/\s*(client\s+)?info(\s+doc)?s?$/i, '').trim();
+      if (name) {
+        results.push({ name, docId, docName });
+      }
+    }
+
+    results.sort((a, b) => a.name.localeCompare(b.name));
+    console.log(`[listInfoDocs] Returning ${results.length} clients:`, results.map(r => r.name).join(', '));
+    return results;
+  } catch (err) {
+    console.error('[listInfoDocs] error:', err.message);
+    return [];
+  }
 }
 
 module.exports = {
