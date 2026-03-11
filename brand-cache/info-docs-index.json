@@ -38,8 +38,11 @@
     },
     {
       "name": "Lux Unfiltered",
-      "docId": "2kzmf2v4-4458",
-      "docName": "Lux Unfiltered Client Info Doc"
+      "docId": "1fuLQ4j-VZMelXtbSOTEtCpRliYYJNyqDdD0NaOGuveY",
+      "docName": "Lux Unfiltered Client Info Doc",
+      "docUrl": "https://docs.google.com/document/d/1fuLQ4j-VZMelXtbSOTEtCpRliYYJNyqDdD0NaOGuveY/edit",
+      "folderId": "1KVgz8s2fivxM3jd2OcW5ddNah71OIq-I",
+      "source": "google-drive"
     },
     {
       "name": "Neurogan Health",
@@ -75,6 +78,6 @@
       "docName": "Uncle Jims Worm Farm Client Info Docs"
     }
   ],
-  "updatedAt": "2026-03-09T21:25:14.726Z",
+  "updatedAt": "2026-03-11T19:10:18.239Z",
   "count": 13
 }
