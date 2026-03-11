@@ -1,0 +1,158 @@
+{
+  "brandOverview": "Lux Unfiltered is a premium beauty brand specializing in gradual self-tanning and glow-enhancing body care products that merge skincare benefits with cosmetic results. Positioned in the 'skincare-first tanning' category, they target beauty-conscious women (25-40) seeking natural, sun-kissed radiance without UV damage. The brand emphasizes clean, vegan, cruelty-free formulations with luxury positioning through elevated aesthetics, numbered product nomenclature (No.32, No.12, No.36), and ingredient-focused messaging that positions tanning as part of a holistic skincare routine rather than a standalone cosmetic process.",
+  "website": "https://luxunfiltered.com/",
+  "industry": "Premium self-tanning and glow-enhancing skincare (beauty/cosmetics hybrid niche)",
+  "targetAudience": {
+    "primary": "Beauty-conscious women aged 25-40 who prioritize skincare health and natural aesthetics. They want a radiant, sun-kissed glow but refuse to compromise skin health through UV exposure. They discover brands through Instagram, beauty influencers, and editorial features in publications like Allure.",
+    "secondary": "Busy professionals and mothers (30-45) seeking low-maintenance beauty routines that deliver subtle, buildable results without the time commitment or application anxiety of traditional self-tanners.",
+    "demographics": "Women 25-45, primarily located in major U.S. metropolitan areas (California, New York, urban centers), middle to upper-middle income ($75k+), professionals, lifestyle-focused consumers who invest in premium beauty and wellness products. Secondary reach in Canada and U.K.",
+    "psychographics": "Values clean beauty, ingredient transparency, and products that multitask. Motivated by looking effortlessly polished and maintaining a year-round glow. Pain points include fear of orange, streaky tans; concern about sun damage and premature aging; desire for simple routines that fit into busy schedules. They follow beauty trends, trust influencer recommendations, and view skincare as self-care investment rather than vanity."
+  },
+  "brandVoice": {
+    "tone": "Aspirational yet approachable, emphasizing effortless beauty and skincare luxury without intimidation. The writing is clean, direct, and lifestyle-oriented—never clinical or overly technical. Sentences are short to medium length. The brand uses evocative, sensory language ('sun-kissed,' 'radiant,' 'nourished,' 'glowing') but avoids flowery prose or excessive adjectives. Messaging is confidence-building rather than problem-focused—it speaks to what customers gain (radiance, ease, healthy skin) rather than dwelling on insecurities. The tone is quietly premium: sophisticated without being exclusive, educational without being preachy. Think Glossier meets high-end body care—modern, Instagram-friendly, wellness-aligned.",
+    "personality": "Confident but not arrogant. Modern and trend-aware but not trendy or fleeting. Clean and minimalist in aesthetic choices (evidenced by numbered product system, sparse site design, 'Vanilla Caviar' and 'Santal Rosewood' scent names). Inclusive in approach (offering 'Classic' and 'Deep' tanning shades, non-comedogenic formulas). The brand positions itself as the intelligent choice for women who care about both results and skin health—implying customers are discerning, informed, and unwilling to settle for drugstore quality or Instagram gimmicks.",
+    "doNotSay": [
+      "Anything suggesting tanning beds, UV exposure, or sunbathing as desirable",
+      "Terms like 'fake tan' or 'artificial tan'—always 'self-tanner' or 'sunless tanning'",
+      "Dramatic transformation language—avoid 'deep dark tan' or 'instant bronze goddess' (except for the Bronze product which explicitly offers instant color)",
+      "Anything body-negative or focused on 'fixing' flaws",
+      "Drugstore or budget positioning language—never 'affordable luxury' or 'won't break the bank'",
+      "Complicated multi-step routines or high-maintenance application instructions",
+      "Orange undertones or color correction issues (their products avoid this—don't bring it up as a concern)",
+      "Overly clinical skincare terminology or ingredient deep-dives that read like a chemistry lesson",
+      "Trend-chasing language ('going viral,' 'TikTok famous,' 'everyone's obsessed')"
+    ],
+    "preferredTerms": [
+      "Sun-kissed glow",
+      "Natural-looking tan",
+      "Gradual self-tanning",
+      "Radiant",
+      "Nourished skin",
+      "Buildable results",
+      "Effortless beauty",
+      "Skincare-first",
+      "Non-comedogenic (for face products)",
+      "Hydrating",
+      "Vegan, cruelty-free, non-toxic",
+      "Year-round glow",
+      "Subtle color",
+      "Blends seamlessly",
+      "Daily skincare routine",
+      "Mess-free application"
+    ]
+  },
+  "coreOfferings": {
+    "products": [
+      "Summer Skin (No.32 Gradual Self-Tanning Body Cream) — Flagship product. Gradual self-tanning body lotion that hydrates while building a natural tan over several applications. Available in Classic, Deep, and Sculpting formulas. Scent options include Vanilla Caviar, Santal, and Rosewood. Priced at $38-42.",
+      "Sun Struck Tanning Face Drops (No.12) — Face-specific tanning drops that mix into existing moisturizers or serums. Non-comedogenic. Available in Classic (gradual) and Bronze (instant color). Allows customizable tan intensity. Priced at $42-46.",
+      "On Holiday Tanning Mousse (No.36) — Traditional-style self-tanning mousse for faster, more dramatic results. Available in Classic and Deep shades. Priced at $48.",
+      "Iced Latte Eye Mask — Luxury skincare accessory for eye area care. Priced at $32.",
+      "Fountain of Youth Hand Cream — Premium hand cream. Priced at $26.",
+      "Sunlit Santal Eau De Parfum — Signature fragrance aligned with brand's sensory aesthetic. Priced at $88.",
+      "The Cream — High-end facial or body moisturizer. Priced at $64.",
+      "Face Brush — Application tool for mess-free, even tanning product application. Priced at $20."
+    ],
+    "valueProposition": "Achieve a natural, sun-kissed glow through skincare-first formulations that nourish your skin while building subtle, streak-free color—all without UV damage or complicated application routines. Lux Unfiltered products integrate seamlessly into daily skincare habits, eliminating the anxiety and artificiality of traditional self-tanners.",
+    "keyBenefits": [
+      "Natural-looking, buildable color that develops gradually—no orange tones or streaking",
+      "Skincare benefits embedded in every product—hydration, nourishment, non-comedogenic formulas",
+      "Simple application that fits into existing routines—no special prep, mitts, or contortionist moves required",
+      "Clean beauty credentials—vegan, cruelty-free, non-toxic ingredients",
+      "Customizable results—control intensity through frequency of use or product mixing (especially with face drops)",
+      "Luxury sensory experience—elevated scents (Vanilla Caviar, Santal), elegant packaging, premium textures"
+    ],
+    "pricingTier": "Premium. Products range from $20 (accessories) to $88 (fragrance), with core tanning products at $38-48. Positioned above drugstore brands (Jergens, L'Oréal Sublime Bronze) and mass-market options (Bondi Sands at retail) but below ultra-luxury skincare ($150+ serums). Comparable to premium beauty brands like Tan-Luxe and Isle of Paradise. Free U.S. shipping on $50+ orders and 10% discount on 3+ products indicate accessible premium positioning—customers are investing but not at ultra-wealthy levels. This is 'treat yourself' luxury, not 'special occasion only' pricing."
+  },
+  "competitors": [
+    {
+      "name": "Tan-Luxe",
+      "differentiator": "Lux Unfiltered emphasizes full body-care luxury (hand cream, eye masks, fragrances) alongside tanning, creating a broader lifestyle brand versus Tan-Luxe's laser focus on self-tanning innovation and clinical efficacy."
+    },
+    {
+      "name": "Isle of Paradise",
+      "differentiator": "Lux Unfiltered uses sophisticated, minimalist branding (numbered product system, muted aesthetic) versus Isle of Paradise's colorful, playful packaging and color-coded shade matching system. Lux feels more refined and less 'fun beauty brand.'"
+    },
+    {
+      "name": "Coco & Eve",
+      "differentiator": "Lux Unfiltered positions as skincare-first with ingredient focus and clean beauty credentials, while Coco & Eve leans heavily into influencer marketing, tropical branding, and immediate visual results (mousses, instant formulas)."
+    },
+    {
+      "name": "St. Tropez",
+      "differentiator": "Lux Unfiltered offers modern, gradual formulas designed for daily skincare routines versus St. Tropez's traditional tanning mousse expertise and 'special occasion tan' positioning. Lux is everyday luxury; St. Tropez is event preparation."
+    },
+    {
+      "name": "Bondi Sands",
+      "differentiator": "Lux Unfiltered maintains premium pricing and exclusive online/boutique distribution with clean beauty positioning, while Bondi Sands pursues mass-market accessibility through broad retail distribution (Ulta, Target) at mid-tier pricing."
+    }
+  ],
+  "competitiveDifferentiators": "Lux Unfiltered distinguishes itself through the intersection of three positioning pillars: (1) Gradual, skincare-integrated formulas that eliminate application anxiety and artificial-looking results—you can't mess this up; (2) Elevated sensory branding through numbered product nomenclature (No.32, No.12), sophisticated scent profiles (Vanilla Caviar, Santal Rosewood), and minimalist aesthetic that positions tanning as refined self-care rather than beauty gimmick; (3) Clean beauty credentials (vegan, cruelty-free, non-toxic) combined with efficacy—customers don't compromise results for values. Unlike competitors who excel in one area (Tan-Luxe = innovation, Coco & Eve = influencer appeal, St. Tropez = legacy trust), Lux Unfiltered creates a holistic premium body-care experience where the tan is almost a byproduct of excellent skincare.",
+  "contentThemes": {
+    "onBrandTopics": [
+      "Gradual self-tanning techniques and application guides",
+      "Skincare ingredient education (what makes tanning products nourishing vs. drying)",
+      "UV damage prevention and skin health awareness",
+      "Building a year-round glow through seasonal skincare adjustments",
+      "Clean beauty movement and non-toxic product selection",
+      "Effortless beauty routines for busy women",
+      "Body skincare beyond basic moisturizing—treating body skin like facial skin",
+      "Self-care rituals and wellness-aligned beauty practices",
+      "Fragrance layering and sensory beauty experiences",
+      "Product customization (mixing tanning drops into existing routines)",
+      "Natural beauty aesthetics and 'no-makeup makeup' glow for the body"
+    ],
+    "adjacentTopics": [
+      "Broader skincare trends (hydration, anti-aging for body, ingredient spotlights like hyaluronic acid)",
+      "Wellness and self-care industry trends (spa routines at home, beauty as mental health)",
+      "Clean beauty certifications and what they mean",
+      "Sustainable beauty packaging and eco-conscious consumption",
+      "Women's lifestyle content—travel beauty, getting ready routines, seasonal fashion prep",
+      "Confidence and body positivity without focusing on 'fixing' perceived flaws",
+      "Beauty industry shifts toward skinimalism and natural aesthetics",
+      "Influencer marketing and social proof in beauty purchasing decisions",
+      "E-commerce and DTC beauty brand trends",
+      "Allure and beauty editorial insights—what wins awards and why"
+    ],
+    "offLimitTopics": [
+      "Sunbathing, tanning beds, or any UV-based tanning methods as positive options",
+      "Medical or dermatological advice—stay in the beauty/cosmetic lane, not clinical skincare",
+      "Dramatic body transformation content or before/after weight loss narratives",
+      "Cheap dupes, budget alternatives, or 'save money with this hack' content that undermines premium positioning",
+      "Controversial beauty trends that could date the brand (extreme contouring, Instagram face, overly edited beauty)",
+      "Anything overly sexualized or focused on male gaze—the brand empowers women for themselves",
+      "Political or divisive social issues unrelated to clean beauty values",
+      "Complicated, time-intensive beauty routines that contradict 'effortless' messaging",
+      "Competitor comparisons that sound defensive or directly bash other brands",
+      "Overly technical cosmetic chemistry that alienates non-expert consumers"
+    ]
+  },
+  "keyMessages": [
+    "Sun-kissed glow without the sun—achieve radiant, natural-looking color while protecting skin from UV damage",
+    "Skincare-first body care—tanning products that nourish, hydrate, and improve skin health, not just add color",
+    "Effortless beauty that fits into your daily routine—no complicated prep, no special occasion required",
+    "Non-toxic, vegan, cruelty-free—clean beauty without compromising results",
+    "Buildable, customizable results—control your glow intensity through frequency and mixing options",
+    "Year-round radiance—maintain a healthy glow regardless of season or sun access",
+    "Free U.S. shipping on $50+ | 10% off 3+ products—accessible premium beauty"
+  ],
+  "websiteInsights": {
+    "contentStyle": "Extremely minimal, almost sparse copy. The website prioritizes visual storytelling through product imagery and relies on short, aspirational phrases rather than long-form descriptions. Sentences are fragment-style or very brief ('Blended & mess-free application,' 'Non-Comedogenic'). Product names use numbered nomenclature (No.32, No.12, No.36) creating a sophisticated, apothecary-like feel. Scent descriptors are elevated ('Vanilla Caviar,' 'Santal Rosewood' vs. 'vanilla' or 'sandalwood'). No aggressive sales language—very restrained, confident tone. Formatting is clean with ample white space, high-quality product photography, and minimal text clutter. The site assumes customers are already interested; it doesn't hard-sell or over-explain.",
+    "ctaPatterns": "CTAs are straightforward and action-focused: 'Add to Bag,' 'Shop,' 'See Results' (quiz), 'Notify Me' (for out-of-stock items). No urgency manipulation ('Only 2 left!' 'Sale ends tonight!')—the brand doesn't create artificial scarcity. The quiz ('What is your natural skin tone?') is a primary engagement tool, guiding customers to appropriate products based on skin tone, desired tan depth, focus area (face/body/sculpting), and result speed (immediate vs. gradual). CTAs are subtle, integrated into clean design rather than pop-ups or aggressive prompts.",
+    "socialProof": "Heavy use of star ratings displayed prominently with review counts (e.g., '4.72 out of 5 (3623)' for Summer Skin - Classic). This volume of reviews signals strong customer base and repeat purchase behavior. The site references 'Allure Winners' collection, leveraging editorial credibility. Mentions of influencer/creator 'Must-Have's' collections (Chelsea, Jhonny Curran, Midori Hope, Niki Brown, Paige Harper, Reilly Krug) indicate influencer partnerships as key trust-building strategy. Customer testimonials are relegated to dedicated pages (/testimonials, /reviews, /success-stories) rather than cluttering product pages—confidence in product quality allows restraint.",
+    "mainPages": [
+      "Homepage with product carousels and seasonal campaigns ('Spring Break is Here')",
+      "Collections page organizing products by category (Best Sellers, Beauty, Body Care, Gifts, specific routines)",
+      "Product pages with ratings, scent/shade selectors, and Add to Bag functionality",
+      "Interactive quiz for personalized product recommendations",
+      "About page (though content was minimal in crawl)",
+      "Testimonials/Reviews/Success Stories pages",
+      "Rewards program integration (earn points, redeem for discounts)",
+      "FAQs page"
+    ]
+  },
+  "industryContext": "The premium self-tanning market is experiencing growth as consumers increasingly prioritize skin health and UV damage prevention while still desiring bronzed, radiant appearances. The category is shifting from 'fake tan' stigma toward 'skincare-enhanced glow,' with brands competing on ingredient quality, ease of use, and Instagram-worthy aesthetics. Influencer marketing dominates customer acquisition, and DTC e-commerce models allow premium pricing without traditional retail markup. Clean beauty credentials (vegan, cruelty-free, non-toxic) are table stakes for emerging brands targeting millennial and Gen Z consumers who research ingredients and brand values before purchasing.",
+  "clientName": "Lux Unfiltered",
+  "cachedAt": "2026-03-11T19:12:23.696Z",
+  "cacheKey": "lux-unfiltered",
+  "googleDocId": "1fuLQ4j-VZMelXtbSOTEtCpRliYYJNyqDdD0NaOGuveY",
+  "googleFolderId": "1KVgz8s2fivxM3jd2OcW5ddNah71OIq-I"
+}
