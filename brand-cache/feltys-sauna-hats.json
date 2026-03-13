@@ -1,0 +1,64 @@
+{
+  "status": "INCOMPLETE_RESEARCH",
+  "error": "Insufficient data for comprehensive brand profile",
+  "details": {
+    "clientInfoDoc": "Not provided",
+    "websiteCrawl": "0 pages — no URL provided or crawl failed",
+    "consequence": "Cannot generate reliable brand profile"
+  },
+  "recommendation": "STOP — Do not proceed with content creation until the following data is collected:",
+  "requiredData": [
+    {
+      "source": "Client Info Doc",
+      "items": [
+        "Business description and mission",
+        "Target audience definition",
+        "Products/services offered",
+        "Unique value proposition",
+        "Brand voice preferences",
+        "Competitors they monitor",
+        "Key messages and taglines",
+        "Any topics or messaging to avoid",
+        "Pricing strategy",
+        "Company history/founding story",
+        "Geographic markets",
+        "Customer pain points they solve"
+      ]
+    },
+    {
+      "source": "Website Content",
+      "items": [
+        "Homepage messaging and value prop",
+        "Product pages (descriptions, benefits, pricing)",
+        "About page (company story, mission, values)",
+        "Blog posts or content samples (writing style, tone)",
+        "Testimonials and case studies (social proof approach)",
+        "CTAs and conversion language",
+        "Footer and navigation (key pages)",
+        "FAQ sections (common objections addressed)",
+        "Pricing page or payment models"
+      ]
+    },
+    {
+      "source": "Team Directives (if any)",
+      "items": [
+        "Avoided topics or messaging",
+        "Required compliance language",
+        "Industry sensitivities",
+        "Brand positioning guardrails"
+      ]
+    }
+  ],
+  "nextSteps": [
+    "1. Obtain client onboarding form with complete answers",
+    "2. Provide website URL and allow successful crawl (or manually provide key pages)",
+    "3. Clarify any team directives or brand guidelines",
+    "4. Resubmit for comprehensive profile generation"
+  ],
+  "estimatedProfileCompletionTime": "24 hours after data collection",
+  "clientName": "Feltys Sauna Hats",
+  "cachedAt": "2026-03-13T18:33:11.105Z",
+  "cacheKey": "feltys-sauna-hats",
+  "googleDocId": "18CPIL8jN1ApDjHs32xoRjX33SIZRfHTH1aSktSp_4L8",
+  "googleFolderId": "1OA4EfQXP8bwmDBxAqHQoPIdW__JThpa5"
+}
