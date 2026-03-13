@@ -181,16 +181,14 @@ async function deepCrawlWebsite(url) {
   if (!url.startsWith('http')) url = `https://${url}`;
   const baseUrl = new URL(url).origin;
 
-  // High-value pages only — reduced list to stay within Vercel Hobby 60s limit
+  // Core pages only — must finish crawl in ~10s to leave ~50s for Claude
   const pagePaths = [
-    '/', '/about', '/about-us', '/our-story',
-    '/services', '/products', '/solutions', '/what-we-do',
-    '/pricing', '/plans',
+    '/', '/about', '/about-us',
+    '/services', '/products', '/solutions',
+    '/pricing',
     '/features', '/how-it-works',
-    '/blog',
-    '/case-studies', '/testimonials',
-    '/faq',
-    '/why-us', '/why-choose-us',
+    '/testimonials',
+    '/why-us',
   ];
 
   const pages = [];
@@ -219,7 +217,7 @@ async function deepCrawlWebsite(url) {
           .replace(/<[^>]+>/g, ' ')
           .replace(/\s+/g, ' ')
           .trim()
-          .slice(0, 4000);
+          .slice(0, 3000);
 
         const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
         const metaMatch = html.match(/<meta\s+name=["']description["']\s+content=["']([^"']+)["']/i);
@@ -245,34 +243,13 @@ async function deepCrawlWebsite(url) {
     await Promise.all(batch.map(path => crawlPage(path)));
   }
 
-  // Discover additional internal links from homepage (crawl up to 5 in parallel)
-  if (pages.length > 0 && pages[0]?.path === '/') {
-    try {
-      const homepageResp = await fetch(baseUrl, {
-        headers: { 'User-Agent': 'BrandGuardian/1.0 (brand-enrichment-bot)' },
-        signal: AbortSignal.timeout(5000),
-      });
-      const html = await homepageResp.text();
-      const linkRegex = /href=["'](\/[a-z0-9\-\/]+)["']/gi;
-      let match;
-      const discovered = [];
-      while ((match = linkRegex.exec(html)) !== null) {
-        const p = match[1];
-        if (!crawled.has(p) && p.split('/').length <= 3 && !p.includes('.')) {
-          discovered.push(p);
-        }
-      }
-      await Promise.all(discovered.slice(0, 5).map(dp => crawlPage(dp)));
-    } catch (err) { /* skip */ }
-  }
-
   return pages;
 }
 
 function formatCrawledPages(pages) {
   return pages.map(p =>
     `--- PAGE: ${p.path} ---\nTitle: ${p.title || 'N/A'}\nMeta: ${p.metaDescription || 'N/A'}\n${p.text}`
-  ).join('\n\n').slice(0, 25000);
+  ).join('\n\n').slice(0, 15000);
 }
 
 // ── RESEARCH & PROFILE BUILDING ──
@@ -395,7 +372,7 @@ ${websiteData || '(No website data — could not crawl or no URL provided)'}
 
 Build the most thorough, opinionated profile possible. This will be used by content creators and AI bots to ensure everything produced is perfectly on-brand.`;
 
-  const result = await askClaudeLong(systemPrompt, userContent, { maxTokens: 4000, timeout: 40000 });
+  const result = await askClaudeLong(systemPrompt, userContent, { maxTokens: 4000, timeout: 55000 });
 
   try {
     return extractJSON(result);
