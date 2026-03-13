@@ -1,63 +1,128 @@
 {
-  "status": "INCOMPLETE_RESEARCH",
-  "error": "Insufficient data for comprehensive brand profile",
-  "details": {
-    "clientInfoDoc": "Not provided",
-    "websiteCrawl": "0 pages — no URL provided or crawl failed",
-    "consequence": "Cannot generate reliable brand profile"
+  "brandOverview": "Feltys Sauna Hats is a direct-to-consumer wellness accessories brand specializing in premium felted wool sauna hats. They position themselves as elevating the sauna experience through thoughtfully designed, functional headwear that combines traditional sauna culture with modern aesthetics. The brand operates globally with international shipping, targets wellness-conscious consumers, and emphasizes quality materials and community partnerships.",
+  "website": "https://feltysaunuhats.com",
+  "industry": "Wellness accessories / Sauna equipment retail",
+  "targetAudience": {
+    "primary": "Health-conscious adults aged 30-55 with disposable income who actively use saunas, value wellness rituals, and are willing to invest in quality accessories that enhance their routines. Likely include sauna enthusiasts, wellness practitioners, and gym/spa members.",
+    "secondary": "Corporate wellness programs, sauna clubs, spas, fitness centers, and team-building communities seeking branded or custom wellness products",
+    "demographics": "Ages 30-65, higher household income ($75K+), likely college-educated, urban and suburban, international (strong EU/Nordic market signals given currency options), wellness-industry professionals, fitness enthusiasts",
+    "psychographics": "Value self-care and wellness rituals, seek authentic/premium products over mass-market alternatives, interested in sauna culture and holistic health, appreciate craftsmanship and natural materials, community-oriented, willing to invest in quality-of-life improvements"
   },
-  "recommendation": "STOP — Do not proceed with content creation until the following data is collected:",
-  "requiredData": [
+  "brandVoice": {
+    "tone": "Aspirational yet approachable, modern-minimalist with wellness undertones. Copy is clean and uncluttered—short declarative statements ('Elevate Your Sauna Routine,' 'Shop Now') that feel more like an invitation than a hard sell. They avoid jargon overload but maintain sophistication. Promotional messaging ('Free Shipping Over $100,' 'Order 2+ Hats And Save!') is straightforward and benefit-focused rather than aggressive. The voice suggests calm confidence—they don't oversell because the product speaks for itself.",
+    "personality": "Refined, mindful, community-oriented, understated luxury. Evidence: emphasis on 'Original' and 'Elevated' positioning, the quiet confidence of not needing excessive copy, the focus on material quality (felted wool), international accessibility without pretentiousness, explicit mention of 'Exclusive Partnerships' and community collaboration.",
+    "doNotSay": [
+      "cheap, affordable alternatives",
+      "budget-friendly, budget sauna solution",
+      "fast fashion / trendy / seasonal",
+      "gimmicky or novelty framing",
+      "comparison to synthetic or low-quality materials",
+      "hard-sell language ('Don't miss out,' 'Limited time,' 'Act now')",
+      "overly casual slang that diminishes the wellness positioning",
+      "medical claims or therapeutic guarantees",
+      "competitive negativity toward other hat styles or brands"
+    ],
+    "preferredTerms": [
+      "Elevate (their hero word—'Elevate Your Sauna Routine')",
+      "Original / The Original",
+      "Felted wool (material specificity)",
+      "Sauna routine / Sauna experience",
+      "Premium, quality, crafted",
+      "Exclusive partnerships",
+      "Custom design",
+      "Wellness",
+      "Sauna community"
+    ]
+  },
+  "coreOfferings": {
+    "products": [
+      "Felty Original Wool Sauna Hat — Core product line in multiple colorways (Heather Gray, Ivory, Mocha). $45 USD. Primary offering positioned as 'The Original' felted wool sauna hat.",
+      "Custom/Branded Sauna Hats — B2B offering for corporate wellness, teams, sauna clubs, and brand partnerships. Available through 'Exclusive Partnerships' program."
+    ],
+    "valueProposition": "Premium felted wool sauna hats that combine traditional sauna culture with modern design, available globally, with exclusive customization options for communities and brands. Superior to synthetic alternatives due to natural material quality and thoughtful construction.",
+    "keyBenefits": [
+      "Natural felted wool material (functional and aesthetic)",
+      "Protects head during sauna sessions (implied functional benefit)",
+      "Elevates sauna experience (emotional/lifestyle benefit)",
+      "Available in multiple neutral colorways for style choice",
+      "Global shipping / international accessibility",
+      "Bulk/partnership discounts ('Order 2+ Hats And Save')",
+      "Customizable for teams and communities"
+    ],
+    "pricingTier": "Mid-to-premium ($45 USD for core product). Evidence: positioned as 'quality' and 'original' with emphasis on materials rather than competing on price; free shipping threshold ($100+) targets repeat/bundle purchases; color options and custom offerings suggest margin protection rather than volume-based discounting."
+  },
+  "competitors": [
     {
-      "source": "Client Info Doc",
-      "items": [
-        "Business description and mission",
-        "Target audience definition",
-        "Products/services offered",
-        "Unique value proposition",
-        "Brand voice preferences",
-        "Competitors they monitor",
-        "Key messages and taglines",
-        "Any topics or messaging to avoid",
-        "Pricing strategy",
-        "Company history/founding story",
-        "Geographic markets",
-        "Customer pain points they solve"
-      ]
+      "name": "Mass-market sauna hat suppliers (synthetic/low-quality alternatives)",
+      "differentiator": "Feltys emphasizes 'Original' positioning and premium felted wool vs. synthetic competitors; their quality and design-forward approach positions them as the thoughtful, craft-oriented alternative."
     },
     {
-      "source": "Website Content",
-      "items": [
-        "Homepage messaging and value prop",
-        "Product pages (descriptions, benefits, pricing)",
-        "About page (company story, mission, values)",
-        "Blog posts or content samples (writing style, tone)",
-        "Testimonials and case studies (social proof approach)",
-        "CTAs and conversion language",
-        "Footer and navigation (key pages)",
-        "FAQ sections (common objections addressed)",
-        "Pricing page or payment models"
-      ]
-    },
-    {
-      "source": "Team Directives (if any)",
-      "items": [
-        "Avoided topics or messaging",
-        "Required compliance language",
-        "Industry sensitivities",
-        "Brand positioning guardrails"
-      ]
+      "name": "Generic wellness accessories brands",
+      "differentiator": "Feltys has a focused category (sauna hats specifically) with deep community positioning, custom partnership options, and international reach that generalists lack."
     }
   ],
-  "nextSteps": [
-    "1. Obtain client onboarding form with complete answers",
-    "2. Provide website URL and allow successful crawl (or manually provide key pages)",
-    "3. Clarify any team directives or brand guidelines",
-    "4. Resubmit for comprehensive profile generation"
+  "competitiveDifferentiators": "Specialized category focus (sauna hats only—no category dilution), emphasis on natural felted wool material in a market likely dominated by synthetic alternatives, elegant minimalist design across multiple neutral colorways, explicit B2B/partnership positioning ('Exclusive Partnerships,' custom design), global shipping infrastructure with multi-currency support, and positioning tied to wellness ritual elevation rather than just functional protection.",
+  "contentThemes": {
+    "onBrandTopics": [
+      "Sauna culture and history (especially Nordic/Finnish traditions)",
+      "The benefits of sauna for wellness and recovery",
+      "How to prepare for and optimize your sauna routine",
+      "Material science: why felted wool (vs. synthetic alternatives)",
+      "Sauna etiquette and best practices",
+      "Building a personal wellness ritual around sauna",
+      "Sauna communities around the world",
+      "Product care and longevity (how to maintain felted wool)",
+      "Case studies/stories: team wellness initiatives using branded saunas",
+      "The intersection of wellness and mindfulness",
+      "Corporate wellness trends and community building"
+    ],
+    "adjacentTopics": [
+      "Holistic wellness and self-care rituals",
+      "Home wellness investments",
+      "Natural fibers and sustainable materials",
+      "Fitness recovery and athletic wellness",
+      "Spa and wellness facility design",
+      "Team building and corporate wellness programs",
+      "Minimalist design and lifestyle",
+      "Mental health and stress relief through routine",
+      "International wellness traditions and practices"
+    ],
+    "offLimitTopics": [
+      "Medical claims (e.g., 'sauna hats cure X' or therapeutic guarantees)",
+      "Comparison-heavy content that disparages competitors",
+      "Extreme price/value positioning that undercuts premium positioning",
+      "Trendy or seasonal framing (sauna is timeless, not trendy)",
+      "Lifestyle gatekeeping or elitism that alienates audiences",
+      "Unsubstantiated health claims",
+      "Overly aggressive promotional copy that conflicts with calm, aspirational tone",
+      "Mass-market or 'budget' positioning"
+    ]
+  },
+  "keyMessages": [
+    "Elevate Your Sauna Routine (primary brand message—appears as hero CTA)",
+    "The Original Felted Wool Sauna Hat",
+    "Free Shipping Over $100 (value/incentive message)",
+    "Order 2+ Hats And Save (bundle/community incentive)",
+    "International Shipping Available (accessibility/global reach)",
+    "Your Brand x Felty Custom design sauna hats for your sauna community, company, or team (B2B/partnership positioning)",
+    "Explore collabs (community and partnership invitation)"
   ],
-  "estimatedProfileCompletionTime": "24 hours after data collection",
+  "websiteInsights": {
+    "contentStyle": "Minimal, clean, intentional. Short sentence fragments or single-line declarations dominate ('Elevate Your Sauna Routine,' 'Shop Now,' 'Explore collabs'). No excessive copy—they let product photography and colorway options do heavy lifting. Benefit-focused product descriptions are sparse but present ('The Original Felted Wool Sauna Hat'). Lists of currencies and regions are matter-of-fact without marketing spin. Overall: sophisticated restraint. Sentence length varies but stays short; no complex nested sentences; data is limited on website but pricing ($45) is clear and non-negotiable.",
+    "ctaPatterns": "Primary CTAs are single-action and low-pressure: 'Shop Now,' 'Add' (to cart, simple and direct), 'Explore collabs' (invitational rather than demanding). No urgency language ('Limited time!' or 'Don't miss out!'). CTAs feel like open invitations rather than hard sells. Secondary CTAs include account login ('Log in to check out faster') emphasizing convenience for repeat customers. No countdown timers or scarcity messaging observed.",
+    "socialProof": "Limited on crawled pages—no explicit testimonials, case studies, or review sections visible on home/collections pages. However, currency/region selector and 'International Shipping Available' serve as social proof of global reach. 'Exclusive Partnerships' section implies trusted brand collaborations (though details not visible). Instagram link in footer suggests active social presence (likely user-generated content and community proof there). Absence of testimonials on homepage is intentional—brand confidence allows product and design to be the proof.",
+    "mainPages": [
+      "Homepage / hero section (product showcase with CTA)",
+      "Collections / Products page (product catalog with colorway options)",
+      "Custom Partnerships / B2B collaboration section (implied, mentioned as 'Explore collabs')",
+      "Account / Cart (checkout flow)",
+      "Footer with policy links and social links"
+    ]
+  },
+  "industryContext": "The sauna and wellness accessory market is experiencing growth as consumers prioritize self-care and holistic wellness. Sauna use is becoming mainstream in Western markets (driven by wellness trends and at-home investments), while remaining culturally rooted in Nordic regions where it's a established practice. The market is fragmented between mass-market synthetic alternatives and premium, design-forward brands; Feltys occupies the latter space, targeting affluent wellness enthusiasts and B2B wellness program buyers rather than competing on price or volume.",
+  "discrepancies": "No client info doc available to cross-reference with website claims. Website provides limited content depth (only 2 pages crawled); custom partnership details, full product range, pricing strategy, and brand story are likely more developed but not visible in crawled content. Team should request additional brand documentation (about page, full product catalog, brand guidelines) for comprehensive profile.",
   "clientName": "Feltys Sauna Hats",
-  "cachedAt": "2026-03-13T18:33:11.105Z",
+  "cachedAt": "2026-03-13T19:13:42.541Z",
   "cacheKey": "feltys-sauna-hats",
   "googleDocId": "18CPIL8jN1ApDjHs32xoRjX33SIZRfHTH1aSktSp_4L8",
   "googleFolderId": "1OA4EfQXP8bwmDBxAqHQoPIdW__JThpa5"
