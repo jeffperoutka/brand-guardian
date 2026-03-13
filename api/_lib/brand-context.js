@@ -276,6 +276,7 @@ async function runDeepResearch(clientName, existingDocContent, websiteUrl, progr
     websiteData = formatCrawledPages(crawledPages);
   }
 
+  console.log(`[runDeepResearch] Crawled ${crawledPages.length} pages, websiteData=${websiteData.length} chars, docContent=${(existingDocContent||'').length} chars`);
   if (progressCallback) await progressCallback(`Analyzing ${crawledPages.length} pages + Client Info Doc...`);
 
   const hasNotes = !!(options.enrichmentNotes && options.enrichmentNotes.trim());
@@ -383,7 +384,7 @@ Build the most thorough, opinionated profile possible. This will be used by cont
   try {
     return extractJSON(result);
   } catch (err) {
-    console.error('Failed to parse research:', err.message);
+    console.error('Failed to parse research:', err.message, 'Full response:', result?.substring(0, 500));
     return null;
   }
 }
