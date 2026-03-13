@@ -32,13 +32,24 @@ function extractJSON(text) {
   const last = text.lastIndexOf('}');
   if (first !== -1 && last > first) {
     const jsonStr = text.substring(first, last + 1);
-    try { return JSON.parse(jsonStr); } catch(e) {
-      // Try fixing common issues: trailing commas, unescaped newlines in strings
-      const cleaned = jsonStr
-        .replace(/,\s*([}\]])/g, '$1')  // trailing commas
-        .replace(/\n/g, '\\n');          // unescaped newlines
-      try { return JSON.parse(cleaned); } catch(e2) {}
+    try { return JSON.parse(jsonStr); } catch(e) {}
+    // Fix trailing commas
+    const noTrailing = jsonStr.replace(/,\s*([}\]])/g, '$1');
+    try { return JSON.parse(noTrailing); } catch(e) {}
+    // Fix literal newlines/control chars inside string values
+    // Walk through char by char, escape control chars only when inside a string
+    let fixed = '', inString = false, escaped = false;
+    for (let i = 0; i < noTrailing.length; i++) {
+      const ch = noTrailing[i];
+      if (escaped) { fixed += ch; escaped = false; continue; }
+      if (ch === '\\') { fixed += ch; escaped = true; continue; }
+      if (ch === '"') { inString = !inString; fixed += ch; continue; }
+      if (inString && ch === '\n') { fixed += '\\n'; continue; }
+      if (inString && ch === '\r') { fixed += '\\r'; continue; }
+      if (inString && ch === '\t') { fixed += '\\t'; continue; }
+      fixed += ch;
     }
+    try { return JSON.parse(fixed); } catch(e) {}
   }
   throw new Error('Could not extract JSON from response (length=' + text.length + ', preview=' + text.substring(0, 100) + ')');
 }
@@ -319,7 +330,7 @@ Data sources:
 1. Client Info Doc — their answers about their business (onboarding questionnaire)
 2. Website content — crawled pages from their actual site
 
-OUTPUT — valid JSON only, no markdown fences:
+OUTPUT — valid JSON only, no markdown fences, no literal newlines inside string values (use \\n instead):
 {
   "brandOverview": "3-5 sentence overview of who they are, what they do, and how they position themselves in the market",
   "website": "main URL",
@@ -393,8 +404,7 @@ Build the most thorough, opinionated profile possible. This will be used by cont
   try {
     return extractJSON(result);
   } catch (err) {
-    console.error('Failed to parse research:', err.message, 'Full response:', result?.substring(0, 500));
-    // Return the raw text so caller can log it
+    console.error('Failed to parse research:', err.message, 'Response length:', result?.length);
     return { _parseError: err.message, _rawPreview: result?.substring(0, 300) };
   }
 }
@@ -411,7 +421,7 @@ async function parseExistingResearch(docContent, clientName) {
   const result = await askClaudeLong(
     `Parse this client's brand document into a structured profile. The doc contains their original info answers AND brand research findings. Extract everything into a single comprehensive profile.
 
-OUTPUT — valid JSON only, no markdown fences:
+OUTPUT — valid JSON only, no markdown fences, no literal newlines inside string values (use \\n instead):
 {
   "brandOverview": "string",
   "website": "string",
