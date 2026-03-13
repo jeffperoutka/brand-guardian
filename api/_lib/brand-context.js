@@ -372,7 +372,13 @@ ${websiteData || '(No website data — could not crawl or no URL provided)'}
 
 Build the most thorough, opinionated profile possible. This will be used by content creators and AI bots to ensure everything produced is perfectly on-brand.`;
 
-  const result = await askClaudeLong(systemPrompt, userContent, { maxTokens: 4000, timeout: 55000 });
+  // Use Haiku for speed (must complete within Vercel Hobby 60s function limit).
+  // Sonnet produces better output but can't finish in time.
+  const result = await askClaudeLong(systemPrompt, userContent, {
+    maxTokens: 4000,
+    timeout: 55000,
+    model: 'claude-haiku-4-5-20251001',
+  });
 
   try {
     return extractJSON(result);
