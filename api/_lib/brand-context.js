@@ -24,12 +24,21 @@ const MAX_DOC_CHARS = 30000;
  */
 function extractJSON(text) {
   try { return JSON.parse(text); } catch(e) {}
-  const stripped = text.replace(/^```(?:json)?\n?/gm, '').replace(/```$/gm, '').trim();
+  // Strip markdown fences (```json ... ```)
+  const stripped = text.replace(/^```(?:json)?\s*/gm, '').replace(/```\s*$/gm, '').trim();
   try { return JSON.parse(stripped); } catch(e) {}
+  // Extract everything between first { and last }
   const first = text.indexOf('{');
   const last = text.lastIndexOf('}');
   if (first !== -1 && last > first) {
-    try { return JSON.parse(text.substring(first, last + 1)); } catch(e) {}
+    const jsonStr = text.substring(first, last + 1);
+    try { return JSON.parse(jsonStr); } catch(e) {
+      // Try fixing common issues: trailing commas, unescaped newlines in strings
+      const cleaned = jsonStr
+        .replace(/,\s*([}\]])/g, '$1')  // trailing commas
+        .replace(/\n/g, '\\n');          // unescaped newlines
+      try { return JSON.parse(cleaned); } catch(e2) {}
+    }
   }
   throw new Error('Could not extract JSON from response (length=' + text.length + ', preview=' + text.substring(0, 100) + ')');
 }
