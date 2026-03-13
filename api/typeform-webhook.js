@@ -1,21 +1,16 @@
 /**
  * Typeform Webhook → Google Drive + Brand Enrichment Pipeline
  *
- * Flow:
- * 1. Typeform submission hits this endpoint
- * 2. Creates Google Drive folder: "{Client Name} - AEO Labs"
- * 3. Creates Google Doc with all form Q&A inside that folder
- * 4. Triggers brand enrichment (deep research)
- * 5. Appends enrichment results to the same Google Doc
+ * Flow (split across two serverless invocations for Vercel Hobby 60s limit):
+ * Phase 1 (this endpoint): Parse form → Create Drive folder → Create Doc → Write form Q&A
+ * Phase 2 (/api/enrich):   Crawl website → Claude analysis → Append research to Doc
  *
  * Zapier config: Typeform "New Entry" → Webhook POST to this endpoint
  * OR direct Typeform webhook → this endpoint
  */
 
-const { waitUntil } = require('@vercel/functions');
 const gdrive = require('./_lib/connectors/gdrive');
 const github = require('./_lib/connectors/github');
-const { runDeepResearch, hasExistingResearch } = require('./_lib/brand-context');
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -38,19 +33,72 @@ module.exports = async function handler(req, res) {
 
     console.log(`[typeform-webhook] Client: ${submission.clientName}, Website: ${submission.websiteUrl || 'none'}`);
 
-    // Respond immediately, process in background
-    res.status(200).json({
-      ok: true,
-      message: `Processing ${submission.clientName} — folder + enrichment will be created.`,
-    });
+    // Phase 1: Create folder + doc + write form answers (runs within this 60s window)
+    const result = await createFolderAndDoc(submission);
 
-    // Run the full pipeline in the background
-    waitUntil(runPipeline(submission));
+    // Phase 2: Fire off enrichment to a separate endpoint (gets its own 60s window)
+    const enrichUrl = `https://${req.headers.host}/api/enrich`;
+    console.log(`[typeform-webhook] Triggering enrichment at ${enrichUrl}`);
+    fetch(enrichUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clientName: submission.clientName,
+        websiteUrl: submission.websiteUrl,
+        competitors: submission.competitors,
+        docId: result.docId,
+        folderId: result.folderId,
+        docContent: result.docContent,
+      }),
+    }).catch(err => console.error('[typeform-webhook] Failed to trigger enrichment:', err.message));
+
+    return res.status(200).json({
+      ok: true,
+      message: `Created folder + doc for ${submission.clientName}. Enrichment running.`,
+      docUrl: result.docUrl,
+      folderUrl: result.folderUrl,
+    });
   } catch (err) {
     console.error('[typeform-webhook] Error:', err.message);
     return res.status(500).json({ error: err.message });
   }
 };
+
+/**
+ * Phase 1: Create Google Drive folder, doc, write form answers, update index.
+ */
+async function createFolderAndDoc(submission) {
+  const { clientName, websiteUrl, competitors, formAnswers } = submission;
+  const folderName = `${clientName} - AEO Labs`;
+
+  // Step 1: Create Google Drive folder
+  console.log(`[pipeline] Creating folder: ${folderName}`);
+  const folder = await gdrive.createFolder(folderName);
+  console.log(`[pipeline] Folder created: ${folder.folderId}`);
+
+  // Step 2: Create the Client Info Doc
+  const docName = `${clientName} Client Info Doc`;
+  console.log(`[pipeline] Creating doc: ${docName}`);
+  const doc = await gdrive.createDoc(docName, folder.folderId);
+  console.log(`[pipeline] Doc created: ${doc.docId}`);
+
+  // Step 3: Write form answers to the doc
+  const docContent = formatFormAnswers(clientName, formAnswers, websiteUrl, competitors);
+  await gdrive.writeDocContent(doc.docId, docContent);
+  console.log(`[pipeline] Form answers written to doc`);
+
+  // Step 4: Update the GitHub info-docs index
+  await updateInfoDocsIndex(clientName, doc.docId, docName, folder.folderId);
+  console.log(`[pipeline] Index updated`);
+
+  return {
+    docId: doc.docId,
+    docUrl: doc.docUrl,
+    folderId: folder.folderId,
+    folderUrl: folder.folderUrl,
+    docContent,
+  };
+}
 
 /**
  * Parse Typeform submission into a normalized format.
@@ -188,87 +236,6 @@ async function extractBrandNameFromUrl(url) {
 /**
  * Full pipeline: Create folder → Create doc → Enrich → Append results
  */
-async function runPipeline(submission) {
-  const { clientName, websiteUrl, competitors, formAnswers } = submission;
-  const folderName = `${clientName} - AEO Labs`;
-
-  // Vercel Hobby caps background execution at ~55s after response sent.
-  // Wrap the entire pipeline in a race against a timeout.
-  const PIPELINE_TIMEOUT = 55000;
-  const pipelineWork = _runPipelineWork(submission);
-  const timeoutPromise = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('Pipeline timeout — Vercel Hobby 60s limit')), PIPELINE_TIMEOUT)
-  );
-
-  try {
-    await Promise.race([pipelineWork, timeoutPromise]);
-  } catch (err) {
-    console.error(`[pipeline] ❌ ${clientName}: ${err.message}`);
-  }
-}
-
-async function _runPipelineWork(submission) {
-  const { clientName, websiteUrl, competitors, formAnswers } = submission;
-  const folderName = `${clientName} - AEO Labs`;
-
-  try {
-    // Step 1: Create Google Drive folder
-    console.log(`[pipeline] Creating folder: ${folderName}`);
-    const folder = await gdrive.createFolder(folderName);
-    console.log(`[pipeline] Folder created: ${folder.folderId}`);
-
-    // Step 2: Create the Client Info Doc with form Q&A
-    const docName = `${clientName} Client Info Doc`;
-    console.log(`[pipeline] Creating doc: ${docName}`);
-    const doc = await gdrive.createDoc(docName, folder.folderId);
-    console.log(`[pipeline] Doc created: ${doc.docId}`);
-
-    // Step 3: Write form answers to the doc
-    const docContent = formatFormAnswers(clientName, formAnswers, websiteUrl, competitors);
-    await gdrive.writeDocContent(doc.docId, docContent);
-    console.log(`[pipeline] Form answers written to doc`);
-
-    // Step 4: Update the GitHub info-docs index
-    await updateInfoDocsIndex(clientName, doc.docId, docName, folder.folderId);
-
-    // Step 5: Run brand enrichment
-    console.log(`[pipeline] Starting brand enrichment for ${clientName}`);
-    const research = await runDeepResearch(
-      clientName,
-      docContent,    // existing doc content (the form answers)
-      websiteUrl,
-      (msg) => console.log(`[pipeline] ${msg}`),
-      { enrichmentNotes: competitors ? `Key competitors: ${competitors}` : '' }
-    );
-
-    if (!research) {
-      console.error(`[pipeline] Brand enrichment returned null for ${clientName}`);
-      await gdrive.appendToDoc(doc.docId, '\n\n---\n\n⚠️ Brand enrichment could not be completed. Please run /brand-enrich in Slack to retry.');
-      return;
-    }
-
-    // Step 6: Append enrichment results to the doc
-    const researchText = formatResearchForDoc(clientName, research);
-    await gdrive.appendToDoc(doc.docId, researchText);
-    console.log(`[pipeline] Enrichment results appended to doc`);
-
-    // Step 7: Cache the profile in GitHub
-    const cacheKey = clientName.toLowerCase().replace(/[^a-z0-9]/g, '-');
-    const profileWithMeta = {
-      ...research,
-      clientName,
-      cachedAt: new Date().toISOString(),
-      cacheKey,
-      googleDocId: doc.docId,
-      googleFolderId: folder.folderId,
-    };
-    await github.writeFile(`brand-cache/${cacheKey}.json`, profileWithMeta, `brand-cache: ${clientName}`);
-
-    console.log(`[pipeline] ✅ Complete: ${clientName} — Folder: ${folder.folderUrl}, Doc: ${doc.docUrl}`);
-  } catch (err) {
-    console.error(`[pipeline] ❌ Failed for ${clientName}:`, err.message, err.stack);
-  }
-}
 
 /**
  * Format form Q&A as readable text for the Google Doc.
@@ -304,68 +271,6 @@ function formatFormAnswers(clientName, formAnswers, websiteUrl, competitors) {
       text += '(No form responses were included in the submission)\n\n';
     }
   }
-
-  return text;
-}
-
-/**
- * Format enrichment research results as text for appending to Google Doc.
- */
-function formatResearchForDoc(clientName, research) {
-  const date = new Date().toISOString().split('T')[0];
-  let text = '';
-
-  text += '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
-  text += '🛡️ BRAND GUARDIAN RESEARCH\n\n';
-  text += `Auto-generated on ${date} — updated by Brand Guardian\n`;
-  text += 'This section is used for brand alignment checks, content creation, and brand-consistent output.\n\n';
-
-  text += '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n';
-
-  text += 'BRAND OVERVIEW\n';
-  text += `${research.brandOverview || 'N/A'}\n\n`;
-
-  text += 'TARGET AUDIENCE\n';
-  text += `Primary: ${research.targetAudience?.primary || 'Unknown'}\n`;
-  text += `Secondary: ${research.targetAudience?.secondary || 'N/A'}\n`;
-  text += `Demographics: ${research.targetAudience?.demographics || 'Unknown'}\n`;
-  text += `Psychographics: ${research.targetAudience?.psychographics || 'Unknown'}\n\n`;
-
-  text += 'BRAND VOICE & TONE\n';
-  text += `Tone: ${research.brandVoice?.tone || 'Unknown'}\n`;
-  text += `Personality: ${research.brandVoice?.personality || 'Unknown'}\n`;
-  text += `Do Not Say: ${(research.brandVoice?.doNotSay || []).join(', ') || 'None specified'}\n`;
-  text += `Preferred Terms: ${(research.brandVoice?.preferredTerms || []).join(', ') || 'None specified'}\n\n`;
-
-  text += 'PRODUCTS & SERVICES\n';
-  text += `${(research.coreOfferings?.products || []).map(p => `• ${p}`).join('\n') || 'Not specified'}\n\n`;
-  text += `Value Proposition: ${research.coreOfferings?.valueProposition || 'Unknown'}\n`;
-  text += `Key Benefits: ${(research.coreOfferings?.keyBenefits || []).join(', ') || 'Unknown'}\n`;
-  text += `Pricing Tier: ${research.coreOfferings?.pricingTier || 'Unknown'}\n\n`;
-
-  text += 'COMPETITIVE LANDSCAPE\n';
-  text += `${(research.competitors || []).map(c => {
-    if (typeof c === 'string') return `• ${c}`;
-    return `• ${c.name}: ${c.differentiator || ''}`;
-  }).join('\n') || 'No competitors identified'}\n\n`;
-  text += `Key Differentiators: ${research.competitiveDifferentiators || 'Not specified'}\n\n`;
-
-  text += 'CONTENT THEMES\n';
-  text += `On-Brand Topics: ${(research.contentThemes?.onBrandTopics || []).join(', ') || 'Unknown'}\n`;
-  text += `Adjacent Topics (guest posts): ${(research.contentThemes?.adjacentTopics || []).join(', ') || 'Unknown'}\n`;
-  text += `Off-Limit Topics: ${(research.contentThemes?.offLimitTopics || []).join(', ') || 'None specified'}\n\n`;
-
-  text += 'KEY MESSAGES\n';
-  text += `${(research.keyMessages || []).map(m => `• ${m}`).join('\n') || 'Not specified'}\n\n`;
-
-  text += 'WEBSITE INSIGHTS\n';
-  text += `Content Style: ${research.websiteInsights?.contentStyle || 'Unknown'}\n`;
-  text += `CTA Patterns: ${research.websiteInsights?.ctaPatterns || 'Unknown'}\n`;
-  text += `Social Proof: ${research.websiteInsights?.socialProof || 'Unknown'}\n`;
-  text += `Pages Analyzed: ${(research.websiteInsights?.mainPages || []).join(', ') || 'Unknown'}\n\n`;
-
-  text += 'INDUSTRY CONTEXT\n';
-  text += `${research.industryContext || 'Not available'}\n`;
 
   return text;
 }
