@@ -168,7 +168,7 @@ async function extractBrandNameFromUrl(url) {
     const result = await askClaude(
       'Extract the brand/company name from this domain. Return ONLY the properly capitalized brand name, nothing else. Split concatenated words correctly. Examples: "kobopickleball" → "Kobo Pickleball", "luxunfiltered" → "Lux Unfiltered", "unclejimswormfarm" → "Uncle Jims Worm Farm", "enterhealth" → "Enter Health".',
       `Domain: ${domain}`,
-      { maxTokens: 50, timeout: 10000 }
+      { maxTokens: 50, timeout: 8000, model: 'claude-haiku-4-5-20251001' }
     );
     const name = result.trim().replace(/['"]/g, '');
     if (name && name.length > 0 && name.length < 100) {
@@ -189,6 +189,25 @@ async function extractBrandNameFromUrl(url) {
  * Full pipeline: Create folder → Create doc → Enrich → Append results
  */
 async function runPipeline(submission) {
+  const { clientName, websiteUrl, competitors, formAnswers } = submission;
+  const folderName = `${clientName} - AEO Labs`;
+
+  // Vercel Hobby caps background execution at ~55s after response sent.
+  // Wrap the entire pipeline in a race against a timeout.
+  const PIPELINE_TIMEOUT = 55000;
+  const pipelineWork = _runPipelineWork(submission);
+  const timeoutPromise = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('Pipeline timeout — Vercel Hobby 60s limit')), PIPELINE_TIMEOUT)
+  );
+
+  try {
+    await Promise.race([pipelineWork, timeoutPromise]);
+  } catch (err) {
+    console.error(`[pipeline] ❌ ${clientName}: ${err.message}`);
+  }
+}
+
+async function _runPipelineWork(submission) {
   const { clientName, websiteUrl, competitors, formAnswers } = submission;
   const folderName = `${clientName} - AEO Labs`;
 

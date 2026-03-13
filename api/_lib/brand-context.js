@@ -181,30 +181,27 @@ async function deepCrawlWebsite(url) {
   if (!url.startsWith('http')) url = `https://${url}`;
   const baseUrl = new URL(url).origin;
 
+  // High-value pages only — reduced list to stay within Vercel Hobby 60s limit
   const pagePaths = [
-    '/', '/about', '/about-us', '/our-story', '/who-we-are',
-    '/services', '/products', '/solutions', '/what-we-do', '/offerings',
+    '/', '/about', '/about-us', '/our-story',
+    '/services', '/products', '/solutions', '/what-we-do',
     '/pricing', '/plans',
-    '/features', '/how-it-works', '/platform',
-    '/blog', '/resources', '/insights',
-    '/case-studies', '/testimonials', '/reviews', '/success-stories',
-    '/team', '/leadership', '/our-team',
-    '/contact', '/get-started', '/demo', '/free-trial',
-    '/faq', '/help', '/support',
-    '/industries', '/customers', '/partners',
-    '/why-us', '/why-choose-us', '/comparison',
-    '/careers', '/press', '/news', '/media',
+    '/features', '/how-it-works',
+    '/blog',
+    '/case-studies', '/testimonials',
+    '/faq',
+    '/why-us', '/why-choose-us',
   ];
 
   const pages = [];
   const crawled = new Set();
 
   async function crawlPage(path) {
-    if (crawled.has(path)) return;
+    if (crawled.has(path)) return null;
     crawled.add(path);
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
+      const timeout = setTimeout(() => controller.abort(), 5000);
       const resp = await fetch(`${baseUrl}${path}`, {
         signal: controller.signal,
         headers: { 'User-Agent': 'BrandGuardian/1.0 (brand-enrichment-bot)' },
@@ -238,20 +235,24 @@ async function deepCrawlWebsite(url) {
 
         return html;
       }
-    } catch (err) { /* skip */ }
+    } catch (err) { /* skip — timeout or network error */ }
     return null;
   }
 
-  for (const path of pagePaths) {
-    await crawlPage(path);
-    await new Promise(r => setTimeout(r, 300));
+  // Crawl in parallel batches of 5 for speed
+  for (let i = 0; i < pagePaths.length; i += 5) {
+    const batch = pagePaths.slice(i, i + 5);
+    await Promise.all(batch.map(path => crawlPage(path)));
   }
 
-  // Discover additional internal links from homepage
-  if (pages.length > 0) {
+  // Discover additional internal links from homepage (crawl up to 5 in parallel)
+  if (pages.length > 0 && pages[0]?.path === '/') {
     try {
-      const homepageHtml = pages[0]?.text ? null : await (await fetch(baseUrl)).text();
-      const html = homepageHtml || '';
+      const homepageResp = await fetch(baseUrl, {
+        headers: { 'User-Agent': 'BrandGuardian/1.0 (brand-enrichment-bot)' },
+        signal: AbortSignal.timeout(5000),
+      });
+      const html = await homepageResp.text();
       const linkRegex = /href=["'](\/[a-z0-9\-\/]+)["']/gi;
       let match;
       const discovered = [];
@@ -261,10 +262,7 @@ async function deepCrawlWebsite(url) {
           discovered.push(p);
         }
       }
-      for (const dp of discovered.slice(0, 10)) {
-        await crawlPage(dp);
-        await new Promise(r => setTimeout(r, 300));
-      }
+      await Promise.all(discovered.slice(0, 5).map(dp => crawlPage(dp)));
     } catch (err) { /* skip */ }
   }
 
@@ -397,7 +395,7 @@ ${websiteData || '(No website data — could not crawl or no URL provided)'}
 
 Build the most thorough, opinionated profile possible. This will be used by content creators and AI bots to ensure everything produced is perfectly on-brand.`;
 
-  const result = await askClaudeLong(systemPrompt, userContent, { maxTokens: 6000, timeout: 150000 });
+  const result = await askClaudeLong(systemPrompt, userContent, { maxTokens: 4000, timeout: 40000 });
 
   try {
     return extractJSON(result);
