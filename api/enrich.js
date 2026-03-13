@@ -33,10 +33,15 @@ module.exports = async function handler(req, res) {
       { enrichmentNotes: competitors ? `Key competitors: ${competitors}` : '' }
     );
 
-    if (!research) {
-      console.error(`[enrich] Brand enrichment returned null for ${clientName}`);
+    if (!research || research._parseError) {
+      console.error(`[enrich] Brand enrichment failed for ${clientName}:`, research?._parseError || 'null result');
       await gdrive.appendToDoc(docId, '\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n⚠️ Brand enrichment could not be completed. Please run /brand-enrich in Slack to retry.');
-      return res.status(200).json({ ok: true, enriched: false, reason: 'research returned null' });
+      return res.status(200).json({
+        ok: true,
+        enriched: false,
+        reason: research?._parseError || 'research returned null',
+        rawPreview: research?._rawPreview || null,
+      });
     }
 
     // Append enrichment results to the doc

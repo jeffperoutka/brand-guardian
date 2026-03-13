@@ -385,7 +385,8 @@ Build the most thorough, opinionated profile possible. This will be used by cont
     return extractJSON(result);
   } catch (err) {
     console.error('Failed to parse research:', err.message, 'Full response:', result?.substring(0, 500));
-    return null;
+    // Return the raw text so caller can log it
+    return { _parseError: err.message, _rawPreview: result?.substring(0, 300) };
   }
 }
 
