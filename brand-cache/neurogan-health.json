@@ -1,0 +1,172 @@
+{
+  "brandOverview": "Neurogan Health is a family-owned, San Diego-based supplement brand specializing in science-backed longevity and cellular health products. They position themselves at the intersection of rigorous scientific research (collaborating with Aalborg University) and natural compounds, targeting the biohacker and health optimization market. Their core focus is supporting healthspan extension through NAD+ boosters, NMN, spermidine, urolithin A, and other cellular metabolism compounds. They differentiate through transparent third-party testing, high-potency formulations, and a research-driven approach that appeals to educated, supplement-savvy consumers who demand evidence.",
+  "website": "https://neuroganhealth.com/",
+  "industry": "Longevity and cellular health supplements (anti-aging nutraceuticals)",
+  "targetAudience": {
+    "primary": "Health optimization and longevity enthusiasts ages 30-65 who actively research supplements, follow longevity science trends, and prioritize extending healthspan over simply treating symptoms. These are educated consumers who understand terms like NAD+, mitochondrial function, and cellular senescence.",
+    "secondary": "Biohackers and performance-focused professionals who treat their bodies as optimization projects, tracking biomarkers and experimenting with cutting-edge compounds to improve cognitive performance, energy, and athletic output.",
+    "demographics": "Ages 30-65, primarily United States (concentrated in health-conscious urban areas), middle to upper-middle income ($75k+), likely to hold professional/white-collar positions, college-educated or higher. Both men and women, though biohacker audience skews slightly male.",
+    "psychographics": "Data-driven, skeptical of marketing hype, values transparency and third-party testing. Reads research papers or at minimum science-based articles. Motivated by preventing age-related decline rather than vanity. Follows longevity influencers, podcasts (Huberman, Attia, Sinclair). Frustrated by low-quality supplements with proprietary blends. Willing to invest significantly in health. Views supplementation as proactive healthcare, not reactive treatment."
+  },
+  "brandVoice": {
+    "tone": "Science-forward but accessible—they educate without condescending. Sentences are clear and moderate length, avoiding both academic density and oversimplification. They use specific biological mechanisms ('supports NAD+ production,' 'mitochondrial function,' 'cellular renewal') rather than vague wellness language. The tone is confident and authoritative but not aggressive or hyped. They let the science speak rather than using urgency tactics or emotional manipulation. Example: 'Micronized formula offering daily wellness support' is matter-of-fact, not breathless. They say 'support' not 'boost' or 'supercharge.' Calm, credible, research-driven.",
+    "personality": "The knowledgeable guide—like a research scientist who can explain complex topics to intelligent non-experts. Professional but approachable (family-owned adds warmth). Transparent and trustworthy (emphasizes testing and COAs). Patient educator rather than aggressive marketer. They respect their audience's intelligence and research capacity. Not trendy or flashy—substance over style. The brand feels like it's built by people who genuinely care about longevity science, not marketers who discovered a trending niche.",
+    "doNotSay": [
+      "Anti-aging miracle or fountain of youth language—too hype-y and unscientific",
+      "Cure, treat, diagnose, or prevent disease—FDA compliance issue and they position as wellness support",
+      "Extreme urgency or scarcity tactics—'act now,' 'limited time,' 'revolutionary breakthrough'",
+      "Oversimplified health claims—'feel 20 years younger,' 'reverse aging'",
+      "Lifestyle aspirational language—'live your best life,' 'unlock your potential'",
+      "Comparison to pharmaceuticals or positioning as medicine replacement",
+      "Vague wellness buzzwords without mechanism—'detox,' 'cleanse,' 'balance' without specifics",
+      "Celebrity endorsements or social proof without scientific backing",
+      "Trendy biohacking hype—'hack your biology,' 'biohack your way to'",
+      "Generic supplement marketing—'all-natural,' 'powerful,' 'potent' without context"
+    ],
+    "preferredTerms": [
+      "Cellular health/cellular metabolism/cellular renewal",
+      "Healthspan (not just lifespan)",
+      "Support (not boost, enhance, supercharge)",
+      "NAD+ levels, mitochondrial function, DNA integrity",
+      "Science-backed, research-driven, evidence-based",
+      "Longevity compounds, precursors",
+      "Third-party tested, certificates of analysis",
+      "Vitality, wellness, metabolic function",
+      "Formulation (not just 'product')",
+      "Bioavailability, potency, purity",
+      "Plant-based, naturally-derived compounds"
+    ]
+  },
+  "coreOfferings": {
+    "products": [
+      "NMN Capsules (900mg) - NAD+ precursor supporting cellular energy production and healthy aging through boosted NAD+ levels",
+      "NMN + Resveratrol Capsules - Synergistic longevity formula combining NAD+ support with sirtuin activation",
+      "NAD+ Precursor Capsules - Alternative NAD+ boosting formula for cellular vitality and recovery",
+      "Urolithin A Pro Capsules - Micronized mitophagy support for cellular cleanup and mitochondrial health",
+      "Spermidine Tablets - Plant-derived autophagy inducer supporting cellular renewal and longevity pathways",
+      "Fisetin Capsules - Senolytic flavonoid targeting cellular senescence while supporting cognitive clarity",
+      "Berberine Capsules - Metabolic support compound for blood sugar regulation and AMPK activation",
+      "GHK-Cu Copper Peptide products (tablets and topical serums) - Tissue repair and skin/hair health support",
+      "AHK-Cu + GHK-Cu Hair Serum Pro - Dual peptide topical for hair and scalp health",
+      "Epicatechin Supplement - Myostatin inhibitor supporting muscle strength and athletic performance",
+      "Liposomal supplements - Enhanced bioavailability formulations for improved absorption"
+    ],
+    "valueProposition": "Science-driven longevity supplements combining high-potency natural compounds with transparent third-party testing and university research collaboration, designed for educated consumers who demand both efficacy and evidence.",
+    "keyBenefits": [
+      "University-backed formulations (Aalborg University collaboration) providing scientific credibility",
+      "Third-party lab tested with published certificates of analysis—verifiable purity and potency",
+      "High-potency dosing of cellular health compounds (e.g., 900mg NMN) at effective research-supported levels",
+      "Targeted cellular mechanisms—NAD+ production, mitochondrial function, autophagy, senescence",
+      "Transparent ingredient sourcing from fruits and plants with clear mechanism explanations",
+      "100% money-back guarantee reducing purchase risk for first-time biohackers",
+      "Direct-to-consumer model ensuring freshness and supply chain control"
+    ],
+    "pricingTier": "Mid-to-premium ($24-$185 per product)—positioned above commodity supplements but below ultra-luxury longevity brands. Pricing reflects high-potency formulations and third-party testing while remaining accessible to the 30-65 optimization demographic. Not budget (which signals low quality to this audience) but not Elysium-level premium. The $85-100 price points for advanced formulations like Urolithin A signal serious supplementation for serious users."
+  },
+  "competitors": [
+    {
+      "name": "Tru Niagen",
+      "differentiator": "Neurogan offers broader longevity compound selection beyond just NR, with university collaboration and more transparent pricing/testing while Tru Niagen is single-ingredient focused and premium-priced"
+    },
+    {
+      "name": "Elysium Health",
+      "differentiator": "Neurogan is family-owned with more personal brand story and broader product range at lower price points, while Elysium leans heavily on Nobel Prize scientist affiliations and premium positioning"
+    },
+    {
+      "name": "DoNotAge.org",
+      "differentiator": "Neurogan emphasizes natural/plant-based sourcing and family-owned values versus DoNotAge's pure science/clinical positioning, plus Neurogan has retail presence and more polished consumer branding"
+    },
+    {
+      "name": "Renue by Science",
+      "differentiator": "Neurogan focuses on comprehensive cellular health stacks and lifestyle integration while Renue specializes in liposomal delivery and advanced NAD+ formulations with more technical/pharmaceutical positioning"
+    },
+    {
+      "name": "Double Wood Supplements",
+      "differentiator": "Neurogan offers university research backing and premium testing transparency versus Double Wood's broader budget-conscious supplement catalog—Neurogan is specialized longevity focus versus generalist supplement store"
+    },
+    {
+      "name": "ProHealth Longevity",
+      "differentiator": "Neurogan's collaboration with Aalborg University and family-owned story creates more personal brand connection versus ProHealth's clinical/medical positioning"
+    },
+    {
+      "name": "Toniiq",
+      "differentiator": "Both emphasize high-potency bioactive compounds, but Neurogan focuses specifically on longevity science and cellular health mechanisms while Toniiq offers broader specialty supplement categories"
+    }
+  ],
+  "competitiveDifferentiators": "Aalborg University research collaboration provides academic credibility that most DTC supplement brands lack—this matters enormously to the educated biohacker audience. Family-owned positioning adds authenticity and mission-driven narrative versus venture-backed competitors. Published third-party certificates of analysis (not just 'tested' claims) demonstrate transparency. Focus on cellular mechanisms (NAD+, mitochondrial function, autophagy, senescence) rather than symptom relief creates sophisticated positioning. Product range covers the full longevity compound spectrum (NMN, spermidine, urolithin A, fisetin) allowing customers to build complete stacks from one trusted source. San Diego location connects to biotech/longevity hub credibility. Balance of science rigor with natural/plant-based sourcing appeals to both evidence-seekers and natural health advocates.",
+  "contentThemes": {
+    "onBrandTopics": [
+      "NAD+ biology and cellular energy production mechanisms",
+      "Mitochondrial health and function optimization",
+      "Autophagy, cellular senescence, and longevity pathways",
+      "Specific longevity compounds deep-dives (NMN, spermidine, urolithin A, fisetin, berberine mechanisms)",
+      "Supplement quality, testing standards, and how to evaluate COAs",
+      "Healthspan versus lifespan science",
+      "Age-related metabolic decline and cellular repair",
+      "Bioavailability and absorption science for supplements",
+      "Longevity research translation—explaining human studies and animal model relevance",
+      "Stack-building guides for different health goals (energy, cognition, athletic performance)",
+      "Interview content with researchers and longevity scientists",
+      "Peptide science for tissue repair and regeneration",
+      "Natural compound sourcing and extraction methods"
+    ],
+    "adjacentTopics": [
+      "General healthy aging lifestyle practices (sleep, exercise, stress) as complement to supplementation",
+      "Metabolic health and blood sugar regulation",
+      "Cognitive optimization and nootropics (but focused on aging/longevity angle)",
+      "Athletic performance and recovery (through cellular health lens)",
+      "Nutrition science related to cellular health (polyphenols, caloric restriction mimetics)",
+      "Biomarker tracking and longevity testing",
+      "Emerging longevity research and clinical trials",
+      "Comparison of longevity supplement categories for educational purposes",
+      "Science communication—how to read research studies",
+      "Inflammation and cellular stress responses"
+    ],
+    "offLimitTopics": [
+      "Disease treatment, cure, or prevention claims—regulatory and positioning issue",
+      "Pharmaceutical comparisons or supplement-as-medicine-replacement positioning",
+      "Extreme biohacking practices (injections, unapproved compounds, gray-market substances)",
+      "Anti-vaxx or alternative medicine conspiracy theories",
+      "Weight loss as primary benefit—not their core positioning",
+      "Beauty/vanity-focused anti-aging (fighting wrinkles for appearance sake)",
+      "Detox/cleanse pseudoscience",
+      "Unrelated supplement categories that dilute longevity expertise (probiotics, multivitamins, protein powders)",
+      "Political or controversial social topics",
+      "Spiritual/mystical wellness concepts without scientific grounding",
+      "Competitive attack content or negative comparison marketing",
+      "Hype-driven trendy supplements without longevity research backing",
+      "Celebrity-endorsed wellness trends without scientific merit"
+    ]
+  },
+  "keyMessages": [
+    "Support your body at the cellular level",
+    "Science-backed products designed to support longevity, cellular health, brain function, and healthy aging",
+    "Combining natural compounds with advanced scientific research",
+    "Cellular renewal for a younger tomorrow",
+    "Science + nature positioning",
+    "Developed with input from cellular biology experts and research institutions",
+    "Third-party lab testing and published certificates of analysis verifying potency and purity",
+    "High-potency longevity ingredients focused on cellular repair and mitochondrial health",
+    "Family-owned supplement brand in collaboration with Aalborg University",
+    "100% Money Back Guarantee—satisfaction guaranteed"
+  ],
+  "websiteInsights": {
+    "contentStyle": "Concise, benefit-focused copy with scientific terminology used naturally but not excessively. Product descriptions lead with mechanisms ('Supports NAD+ production') then daily supply info, then brief benefit statements. Sentences are short-to-medium length. Minimal flowery language—very functional. Heavy use of specific compound names and biological terms (mitochondrial, cellular, metabolism) assuming audience familiarity. '+Longevity' '+Wellness' '+Recovery' tags create systematic categorization. Bullet points and scannable formatting. No lengthy storytelling—information is dense and purposeful. Numbers and specifics are prominent (900mg, 60-day supply, third-party tested).",
+    "ctaPatterns": "Straightforward action language—'Shop,' 'Build Your Stack,' 'Add to Cart.' No urgency or pressure tactics. 'Get 20% off your first order' is the promotional hook (discount-driven rather than scarcity). 100% Money Back Guarantee is repeated prominently to reduce purchase friction. CTAs are functional, not emotional. 'Learn' section in navigation positions education as conversion path. Free shipping threshold ($70+) clearly stated. Focus on convenience and risk reduction rather than FOMO.",
+    "socialProof": "Star ratings prominently displayed (4.6-4.8 out of 5 stars) with review counts on product tiles. 'Trusted by thousands' on homepage. 'As featured in' section (though specific publications not shown in crawled content). Reviews and Lab Results are dedicated navigation items showing transparency commitment. Social proof is evidence-based (numbers, ratings, testing) rather than testimonial-heavy or celebrity-driven.",
+    "mainPages": [
+      "Homepage with featured products and category navigation",
+      "Shop All/Collections organized by ingredient (NMN, GHK-CU, Spermidine, etc.) and health goal (Brain, Healthy-Aging, Energy, etc.)",
+      "Individual product pages with ratings, supply info, mechanism descriptions",
+      "Learn section (Blog, FAQs, Ingredients, Face Age Calculator)",
+      "About section (About Us, Team of Experts, Lab Results)",
+      "Contact/Support page with FAQ integration"
+    ]
+  },
+  "industryContext": "The longevity supplement market has exploded post-2020 driven by podcast-fueled biohacking trends (Huberman, Attia, Sinclair, Rhonda Patrick) and mainstream awareness of NAD+, NMN, and cellular senescence research. This created a gold rush of new brands, but also widespread consumer skepticism due to underdosed products, proprietary blends, and lack of testing transparency. Educated consumers now demand third-party verification, research citations, and effective dosing, creating opportunity for science-forward brands. The market is bifurcating between budget commodity supplements and premium research-backed brands—mid-tier positioning requires clear differentiation through either unique formulations, transparent testing, or credible scientific partnerships.",
+  "clientName": "Neurogan Health",
+  "cachedAt": "2026-03-13T17:38:28.436Z",
+  "cacheKey": "neurogan-health",
+  "googleDocId": "1szzfDBhx4h3uCTUduCuSvKAl88bGiafcRot9i0iaD6Y",
+  "googleFolderId": "1vMhY6Wb-0SEUjey6lkPl3G9Ktu3mOrPi"
+}
