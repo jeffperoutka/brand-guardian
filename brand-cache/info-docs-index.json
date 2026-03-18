@@ -14,6 +14,14 @@
       "docName": "Branvas Client Info Doc"
     },
     {
+      "name": "Compartes",
+      "docId": "1qB4ByJDR0CNBfiil99QHAFMwp9qNIvsdffdAGf4ApEE",
+      "docName": "Compartes Client Info Doc",
+      "docUrl": "https://docs.google.com/document/d/1qB4ByJDR0CNBfiil99QHAFMwp9qNIvsdffdAGf4ApEE/edit",
+      "folderId": "1noFudQutohxuqbvufrEzOQfw1evvM3YW",
+      "source": "google-drive"
+    },
+    {
       "name": "Enter",
       "docId": "1ayj12KP3JGhQMyxMySWYPlp6IOIpv-sLRoQd2DwTGDk",
       "docName": "Enter Client Info Doc",
@@ -113,6 +121,6 @@
       "docName": "Uncle Jims Worm Farm Client Info Docs"
     }
   ],
-  "updatedAt": "2026-03-18T18:16:58.364Z",
-  "count": 17
+  "updatedAt": "2026-03-18T19:46:13.649Z",
+  "count": 18
 }
