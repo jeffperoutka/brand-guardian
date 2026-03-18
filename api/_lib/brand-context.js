@@ -400,15 +400,14 @@ ${websiteData || '(No website data — could not crawl or no URL provided)'}
 
 Build the most thorough, opinionated profile possible. This will be used by content creators and AI bots to ensure everything produced is perfectly on-brand.`;
 
-  // Use Haiku for speed (must complete within Vercel Hobby 60s function limit).
-  // Sonnet produces better output but can't finish in time.
-  // Dynamic timeout: 55s total budget minus crawl time, with a floor of 25s.
-  const claudeTimeout = Math.max(25000, 55000 - crawlMs);
+  // Vercel Pro allows up to 300s per function invocation.
+  // Use Sonnet for higher quality output now that we have the time budget.
+  // Dynamic timeout: 240s total budget minus crawl time, with a floor of 60s.
+  const claudeTimeout = Math.max(60000, 240000 - crawlMs);
   console.log(`[runDeepResearch] Claude timeout: ${claudeTimeout}ms (crawl took ${crawlMs}ms)`);
   const result = await askClaudeLong(systemPrompt, userContent, {
     maxTokens: 8000,
     timeout: claudeTimeout,
-    model: 'claude-haiku-4-5-20251001',
   });
 
   try {
