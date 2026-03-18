@@ -49,7 +49,12 @@ function extractJSON(text) {
       if (inString && ch === '\t') { fixed += '\\t'; continue; }
       fixed += ch;
     }
-    try { return JSON.parse(fixed); } catch(e) {}
+    try { return JSON.parse(fixed); } catch(e) {
+      // Log the actual parse error and the area around where it fails
+      const pos = e.message.match(/position\s+(\d+)/i)?.[1];
+      const context = pos ? fixed.substring(Math.max(0, +pos - 50), +pos + 50) : '';
+      throw new Error('JSON parse failed after all fixups: ' + e.message + (context ? ' | near: ...' + context + '...' : '') + ' (length=' + fixed.length + ')');
+    }
   }
   throw new Error('Could not extract JSON from response (length=' + text.length + ', preview=' + text.substring(0, 100) + ')');
 }
