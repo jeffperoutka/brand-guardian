@@ -296,12 +296,14 @@ async function runDeepResearch(clientName, existingDocContent, websiteUrl, progr
   if (progressCallback) await progressCallback('Crawling website pages...');
   let crawledPages = [];
   let websiteData = '';
+  const crawlStart = Date.now();
   if (websiteUrl) {
     crawledPages = await deepCrawlWebsite(websiteUrl);
     websiteData = formatCrawledPages(crawledPages);
   }
+  const crawlMs = Date.now() - crawlStart;
 
-  console.log(`[runDeepResearch] Crawled ${crawledPages.length} pages, websiteData=${websiteData.length} chars, docContent=${(existingDocContent||'').length} chars`);
+  console.log(`[runDeepResearch] Crawled ${crawledPages.length} pages in ${crawlMs}ms, websiteData=${websiteData.length} chars, docContent=${(existingDocContent||'').length} chars`);
   if (progressCallback) await progressCallback(`Analyzing ${crawledPages.length} pages + Client Info Doc...`);
 
   const hasNotes = !!(options.enrichmentNotes && options.enrichmentNotes.trim());
@@ -400,10 +402,12 @@ Build the most thorough, opinionated profile possible. This will be used by cont
 
   // Use Haiku for speed (must complete within Vercel Hobby 60s function limit).
   // Sonnet produces better output but can't finish in time.
-  // 8000 tokens to avoid truncation (Haiku is fast enough for this).
+  // Dynamic timeout: 55s total budget minus crawl time, with a floor of 25s.
+  const claudeTimeout = Math.max(25000, 55000 - crawlMs);
+  console.log(`[runDeepResearch] Claude timeout: ${claudeTimeout}ms (crawl took ${crawlMs}ms)`);
   const result = await askClaudeLong(systemPrompt, userContent, {
     maxTokens: 8000,
-    timeout: 55000,
+    timeout: claudeTimeout,
     model: 'claude-haiku-4-5-20251001',
   });
 
