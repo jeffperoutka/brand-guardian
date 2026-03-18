@@ -395,8 +395,9 @@ Build the most thorough, opinionated profile possible. This will be used by cont
 
   // Use Haiku for speed (must complete within Vercel Hobby 60s function limit).
   // Sonnet produces better output but can't finish in time.
+  // 8000 tokens to avoid truncation (Haiku is fast enough for this).
   const result = await askClaudeLong(systemPrompt, userContent, {
-    maxTokens: 4000,
+    maxTokens: 8000,
     timeout: 55000,
     model: 'claude-haiku-4-5-20251001',
   });
