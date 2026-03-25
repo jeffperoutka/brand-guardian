@@ -1,6 +1,14 @@
 {
   "docs": [
     {
+      "name": "American Gun Owners",
+      "docId": "1nbeocOYZyYZ6o9CGl9xrtAd76edJPufKVbwX_aHmQbQ",
+      "docName": "American Gun Owners Client Info Doc",
+      "docUrl": "https://docs.google.com/document/d/1nbeocOYZyYZ6o9CGl9xrtAd76edJPufKVbwX_aHmQbQ/edit",
+      "folderId": "12gfHqkQ0djh4Ky2GNG_iPPIgJiQC76rn",
+      "source": "google-drive"
+    },
+    {
       "name": "Backyard Escapism",
       "docId": "1nV0vw8z52kBGqs2JHw8Qx5iG8ERn39j82FbM5H0OfR8",
       "docName": "Backyard Escapism Client Info Doc",
@@ -146,6 +154,6 @@
       "source": "google-drive"
     }
   ],
-  "updatedAt": "2026-03-20T20:31:20.999Z",
-  "count": 20
+  "updatedAt": "2026-03-25T17:24:24.903Z",
+  "count": 21
 }
